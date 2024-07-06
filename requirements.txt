@@ -1,5 +1,6 @@
 datasets~=1.8.0
 accelerate
+evaluate
 transformers[torch]
 tqdm
 torch

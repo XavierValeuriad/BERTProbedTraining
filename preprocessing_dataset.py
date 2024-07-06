@@ -30,31 +30,22 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 
-import datasets
-from datasets import load_dataset
+from datasets import concatenate_datasets, load_dataset
+from datasets.utils.logging import set_verbosity
 
-import evaluate
 import transformers
 from transformers import (
-    CONFIG_MAPPING,
     MODEL_FOR_MASKED_LM_MAPPING,
     AutoConfig,
     AutoModelForMaskedLM,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
     HfArgumentParser,
-    Trainer,
     TrainingArguments,
-    is_torch_tpu_available,
     set_seed,
     BertTokenizerFast,
 )
 from transformers.trainer_utils import get_last_checkpoint
-from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
-from accelerate import find_executable_batch_size
 
-import torch
 from torch.distributed.elastic.multiprocessing.errors import record
 
 import torch.distributed as dist
@@ -256,7 +247,7 @@ def main():
 
     log_level = training_args.get_process_log_level()
     logger.setLevel(log_level)
-    datasets.utils.logging.set_verbosity(log_level)
+    set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()
@@ -298,7 +289,6 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    from datasets import concatenate_datasets, load_dataset
 
     bookcorpus = load_dataset("bookcorpus", cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None, streaming=True)
     wiki = load_dataset("wikipedia", "20220301.en", cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None)

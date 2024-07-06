@@ -1,6 +1,6 @@
 accelerate>=0.32.1
 datasets~=1.8.0
-transformers[torch]>=4.42.1
+transformers[torch]
 tqdm
 torch>=2.3.1
 tensorflow

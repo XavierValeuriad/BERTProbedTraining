@@ -38,7 +38,7 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     set_seed,
-    BertTokenizerFast,
+    BertTokenizerFast, BertConfig,
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
@@ -207,6 +207,7 @@ class DataTrainingArguments:
 
 @record
 def main():
+
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
@@ -239,10 +240,10 @@ def main():
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
-        handlers=[logging.StreamHandler(sys.stdout)],
+        handlers=[logging.StreamHandler(sys.stdout)]
     )
 
-    log_level = training_args.get_process_log_level()
+    log_level = logging.DEBUG
     logger.setLevel(log_level)
     set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
@@ -257,7 +258,7 @@ def main():
         + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
     # Set the verbosity to info of the Transformers logger (on main process only):
-    logger.info(f"Training/evaluation parameters {training_args}")
+    logger.info(f"Training/evaluation parameters {training_args}.")
 
     # Detecting last checkpoint.
     last_checkpoint = None
@@ -292,7 +293,10 @@ def main():
     # wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])  # only keep the 'text' column
     #
     # assert bookcorpus.features.type == wiki.features.type
+    logging.info('Starting to load the dataset.')
     bert_dataset = load_from_disk('data/train_bert.hf')
+    logging.info('Dataset fully loaded.')
+
     # if data_args.dataset_name is not None:
     #     # Downloading and loading a dataset from the hub.
 
@@ -355,22 +359,50 @@ def main():
     # Distributed training:
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
-    config_kwargs = {
-        "cache_dir": model_args.cache_dir,
-        "revision": model_args.model_revision,
-        "use_auth_token": True if model_args.use_auth_token else None,
-    }
-    if model_args.config_name:
-        config = AutoConfig.from_pretrained(model_args.config_name, **config_kwargs)
-    elif model_args.model_name_or_path:
-        config = AutoConfig.from_pretrained(model_type, **config_kwargs)
-    else:
-        config = AutoConfig.from_pretrained(model_type, **config_kwargs)
-        logger.warning("You are instantiating a new config instance from scratch.")
-        if model_args.config_overrides is not None:
-            logger.info(f"Overriding config: {model_args.config_overrides}")
-            config.update_from_string(model_args.config_overrides)
-            logger.info(f"New config: {config}")
+    # config_kwargs = {
+    #     "cache_dir": model_args.cache_dir,
+    #     "revision": model_args.model_revision,
+    #     "use_auth_token": True if model_args.use_auth_token else None,
+    # }
+    # if model_args.config_name:
+    #     config = AutoConfig.from_pretrained(model_args.config_name, **config_kwargs)
+    # elif model_args.model_name_or_path:
+    #     config = AutoConfig.from_pretrained(model_type, **config_kwargs)
+    # else:
+    #     config = AutoConfig.from_pretrained(model_type, **config_kwargs)
+    #     logger.warning("You are instantiating a new config instance from scratch.")
+    #     if model_args.config_overrides is not None:
+    #         logger.info(f"Overriding config: {model_args.config_overrides}")
+    #         config.update_from_string(model_args.config_overrides)
+    #         logger.info(f"New config: {config}")
+
+    config = BertConfig.from_dict(
+        {
+            "_name_or_path": "bert-base-uncased",
+            "architectures": [
+                "BertForMaskedLM"
+            ],
+            "attention_probs_dropout_prob": 0.1,
+            "classifier_dropout": None,
+            "gradient_checkpointing": False,
+            "hidden_act": "gelu",
+            "hidden_dropout_prob": 0.1,
+            "hidden_size": 768,
+            "initializer_range": 0.02,
+            "intermediate_size": 3072,
+            "layer_norm_eps": 1e-12,
+            "max_position_embeddings": 512,
+            "model_type": "bert",
+            "num_attention_heads": 12,
+            "num_hidden_layers": 12,
+            "pad_token_id": 0,
+            "position_embedding_type": "absolute",
+            "transformers_version": "4.38.2",
+            "type_vocab_size": 2,
+            "use_cache": True,
+            "vocab_size": 30522
+        }
+    )
 
     tokenizer_kwargs = {
         "cache_dir": model_args.cache_dir,
@@ -380,18 +412,18 @@ def main():
     }
     tokenizer = BertTokenizerFast.from_pretrained(model_type)
 
-    if model_args.model_name_or_path:
-        model = AutoModelForMaskedLM.from_pretrained(
-            model_args.model_name_or_path,
-            from_tf=bool(".ckpt" in model_args.model_name_or_path),
-            config=config,
-            cache_dir=model_args.cache_dir,
-            revision=model_args.model_revision,
-            use_auth_token=True if model_args.use_auth_token else None,
-        )
-    else:
-        logger.info("Training new model from scratch")
-        model = AutoModelForMaskedLM.from_config(config)
+    # if model_args.model_name_or_path:
+    #     model = AutoModelForMaskedLM.from_pretrained(
+    #         model_args.model_name_or_path,
+    #         from_tf=bool(".ckpt" in model_args.model_name_or_path),
+    #         config=config,
+    #         cache_dir=model_args.cache_dir,
+    #         revision=model_args.model_revision,
+    #         use_auth_token=True if model_args.use_auth_token else None,
+    #     )
+    # else:
+    logger.info("Training new model from scratch")
+    model = AutoModelForMaskedLM.from_config(config)
 
     model.resize_token_embeddings(len(tokenizer))
 

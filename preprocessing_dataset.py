@@ -290,7 +290,7 @@ def main():
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
 
-    bookcorpus = load_dataset("bookcorpus", cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None, streaming=True)
+    bookcorpus = load_dataset("bookcorpus", cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None)
     wiki = load_dataset("wikipedia", "20220301.en", cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None)
     wiki = wiki.remove_columns([col for col in wiki.column_names if col != "text"])  # only keep the 'text' column
 

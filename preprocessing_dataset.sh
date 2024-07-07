@@ -10,7 +10,7 @@
 #SBATCH --time=19:00:00
 #SBATCH --output=./logs/%x_%A_%a.out
 #SBATCH --error=./logs/%x_%A_%a.err
-#SBATCH -A rtl@v100
+#SBATCH -A mwd@v100
 
 module purge
 module load pytorch-gpu/py3/1.11.0

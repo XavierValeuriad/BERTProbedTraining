@@ -430,10 +430,11 @@ def main():
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
-    if training_args.do_train:
-        column_names = bert_dataset["train"].column_names
-    else:
-        column_names = bert_dataset["validation"].column_names
+    column_names = bert_dataset.column_names
+    # if training_args.do_train:
+    #     column_names = bert_dataset["train"].column_names
+    # else:
+    #     column_names = bert_dataset["validation"].column_names
     text_column_name = "text" if "text" in column_names else column_names[0]
 
     if data_args.max_seq_length is None:

@@ -38,7 +38,7 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     set_seed,
-    BertTokenizerFast, BertConfig,
+    BertTokenizerFast, BertConfig, BertTokenizer,
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
@@ -404,13 +404,14 @@ def main():
         }
     )
 
-    tokenizer_kwargs = {
-        "cache_dir": model_args.cache_dir,
-        "use_fast": model_args.use_fast_tokenizer,
-        "revision": model_args.model_revision,
-        "use_auth_token": True if model_args.use_auth_token else None,
-    }
-    tokenizer = BertTokenizerFast.from_pretrained(model_type)
+    # tokenizer_kwargs = {
+    #     "cache_dir": model_args.cache_dir,
+    #     "use_fast": model_args.use_fast_tokenizer,
+    #     "revision": model_args.model_revision,
+    #     "use_auth_token": True if model_args.use_auth_token else None,
+    # }
+    tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast')
+
 
     # if model_args.model_name_or_path:
     #     model = AutoModelForMaskedLM.from_pretrained(

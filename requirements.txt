@@ -1,4 +1,4 @@
-datasets~=2.20.0
+datasets~=1.12.1
 accelerate
 transformers[torch]
 torch

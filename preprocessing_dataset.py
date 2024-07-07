@@ -504,6 +504,7 @@ def main():
         print("End tokenization")
     print("End script")
 
+
 def _mp_fn(index):
     # For xla_spawn (TPUs)
     main()

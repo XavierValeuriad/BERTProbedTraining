@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:8
 #SBATCH --partition=gpu_p2
 #SBATCH --qos=qos_gpu-t3
-#SBATCH --time=2:00:00
+#SBATCH --time=19:00:00
 #SBATCH --output=./logs/%x_%A_%a.out
 #SBATCH --error=./logs/%x_%A_%a.err
 #SBATCH -A mwd@v100
@@ -26,7 +26,7 @@ srun python preprocessing_dataset.py \
     --log_level='info' \
     --logging_first_step='True' \
     --cache_dir='/cache/' \
-    --path_save_dataset="/data/tokenized_bookcorpus" \
+    --path_save_dataset="/data/tokenized_dataset" \
     --output_dir='/output' \
     --preprocessing_num_workers=20
 

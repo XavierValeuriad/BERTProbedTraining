@@ -40,7 +40,6 @@ from transformers import (
     BertTokenizerFast, BertConfig,
 )
 from transformers.trainer_utils import get_last_checkpoint
-from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -294,7 +293,7 @@ def main():
     #
     # assert bookcorpus.features.type == wiki.features.type
     logging.info('Starting to load the dataset.')
-    bert_dataset = load_from_disk('data/bookcorpus.hf')
+    bert_dataset = load_from_disk('data/train_bert.hf')
     logging.info('Dataset fully loaded.')
 
     # if data_args.dataset_name is not None:

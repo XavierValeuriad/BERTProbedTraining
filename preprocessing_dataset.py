@@ -294,7 +294,7 @@ def main():
     logging.info('Starting to load the dataset.')
 
 
-    raw_datasets = load_from_disk('/data/bookcorpus.hf')
+    raw_datasets = load_from_disk('data/bookcorpus.hf')
 
     # data_files = {}
     # if data_args.train_file is not None:

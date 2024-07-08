@@ -1,7 +1,10 @@
 #!/bin/bash
-module load pytorch-gpu/py3/1.11.0
+module purge
+module load python/3.10.4/1.11.0
 
-python preprocessing_dataset.py \
+python3.10 -m pip install -requierments.txt
+
+python3.10 preprocessing_dataset.py \
     --do_train \
     --overwrite_output_dir \
     --max_seq_length=512 \

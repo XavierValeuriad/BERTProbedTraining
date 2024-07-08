@@ -1,7 +1,7 @@
 #!/bin/bash
 module load pytorch-gpu/py3/1.11.0
 
-srun python preprocessing_dataset.py \
+python preprocessing_dataset.py \
     --do_train \
     --overwrite_output_dir \
     --max_seq_length=512 \

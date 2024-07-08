@@ -2,6 +2,8 @@
 module purge
 module load pytorch-gpu/py3/1.11.0
 
+nvidia-smi
+
 python3.11 preprocessing_dataset.py \
     --train_file='data/bookcorpus.txt' \
     --do_train \

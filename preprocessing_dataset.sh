@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=jeanzay
+#SBATCH --nodes=6
 #SBATCH --ntasks=1             # Nombre total de processus MPI
 #SBATCH --ntasks-per-node=1    # Nombre de processus MPI par noeud
 #SBATCH --hint=nomultithread   # 1 processus MPI par coeur physique (pas d'hyperthreading)
-#SBATCH --cpus-per-task=24
-#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-task=64
+#SBATCH --gpus-per-node=8
 #SBATCH --partition=gpu_p2
 #SBATCH --qos=qos_gpu-t3
 #SBATCH --time=19:00:00

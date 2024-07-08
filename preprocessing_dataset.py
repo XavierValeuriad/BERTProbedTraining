@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 
-from datasets import load_dataset, load_from_disk
+from datasets import load_from_disk
 from datasets.utils.logging import set_verbosity
 
 import transformers

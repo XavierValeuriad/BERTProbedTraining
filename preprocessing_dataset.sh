@@ -9,9 +9,9 @@ python3.9 preprocessing_dataset.py \
     --max_seq_length=512 \
     --log_level='info' \
     --logging_first_step='True' \
-    --cache_dir='/cache/' \
-    --path_save_dataset='/data/tokenized_bookcorpus' \
-    --output_dir='/output' \
+    --cache_dir='cache' \
+    --path_save_dataset='data/tokenized_bookcorpus' \
+    --output_dir='output' \
     --overwrite_cache='False' \
     --preprocessing_num_workers=20
 

@@ -303,7 +303,7 @@ def main():
     if data_args.validation_file is not None:
         data_files["validation"] = data_args.validation_file
         extension = data_args.validation_file.split(".")[-1]
-    if extension == "hf":
+    if extension == "txt":
         extension = "text"
     raw_datasets = load_dataset(
         extension,

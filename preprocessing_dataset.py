@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 
-from datasets import load_from_disk
+from datasets import load_dataset
 from datasets.utils.logging import set_verbosity
 
 import transformers
@@ -291,7 +291,7 @@ def main():
     #
     # assert bookcorpus.features.type == wiki.features.type
     logging.info('Starting to load the dataset.')
-    bert_dataset = load_from_disk('data/bookcorpus.hf')
+    bert_dataset = load_dataset('data/bookcorpus.hf')
     logging.info('Dataset fully loaded.')
 
     # if data_args.dataset_name is not None:

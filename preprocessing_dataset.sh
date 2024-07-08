@@ -1,8 +1,8 @@
 #!/bin/bash
 module purge
-module load python/3.10.4/1.11.0
+module load python/3.10.4
 
-python3.10 -m pip install -requierments.txt
+python3.10 -m pip install --user --no-cache-dir -r requierements.txt
 
 python3.10 preprocessing_dataset.py \
     --do_train \

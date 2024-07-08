@@ -192,18 +192,18 @@ class DataTrainingArguments:
         },
     )
 
-    # def __post_init__(self):
-    #     if self.dataset_name is None and self.train_file is None and self.validation_file is None:
-    #         raise ValueError("Need either a dataset name or a training/validation file.")
-    #     else:
-    #         if self.train_file is not None:
-    #             extension = self.train_file.split(".")[-1]
-    #             if extension not in ["csv", "json", "txt"]:
-    #                 raise ValueError("`train_file` should be a csv, a json or a txt file.")
-    #         if self.validation_file is not None:
-    #             extension = self.validation_file.split(".")[-1]
-    #             if extension not in ["csv", "json", "txt"]:
-    #                 raise ValueError("`validation_file` should be a csv, a json or a txt file.")
+    def __post_init__(self):
+        if self.dataset_name is None and self.train_file is None and self.validation_file is None:
+            raise ValueError("Need either a dataset name or a training/validation file.")
+        else:
+            if self.train_file is not None:
+                extension = self.train_file.split(".")[-1]
+                if extension not in ["csv", "json", "txt"]:
+                    raise ValueError("`train_file` should be a csv, a json or a txt file.")
+            if self.validation_file is not None:
+                extension = self.validation_file.split(".")[-1]
+                if extension not in ["csv", "json", "txt"]:
+                    raise ValueError("`validation_file` should be a csv, a json or a txt file.")
 
 @record
 def main():
@@ -313,21 +313,21 @@ def main():
     )
 
     # If no validation data is there, validation_split_percentage will be used to divide the dataset.
-    # if "validation" not in raw_datasets.keys():
-    #     raw_datasets["validation"] = load_dataset(
-    #         extension,
-    #         data_files=data_files,
-    #         split=f"train[:{data_args.validation_split_percentage}%]",
-    #         cache_dir=model_args.cache_dir,
-    #         use_auth_token=True if model_args.use_auth_token else None,
-    #     )
-    #     raw_datasets["train"] = load_dataset(
-    #         extension,
-    #         data_files=data_files,
-    #         split=f"train[{data_args.validation_split_percentage}%:]",
-    #         cache_dir=model_args.cache_dir,
-    #         use_auth_token=True if model_args.use_auth_token else None,
-    #     )
+    if "validation" not in raw_datasets.keys():
+        raw_datasets["validation"] = load_dataset(
+            extension,
+            data_files=data_files,
+            split=f"train[:{data_args.validation_split_percentage}%]",
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+        raw_datasets["train"] = load_dataset(
+            extension,
+            data_files=data_files,
+            split=f"train[{data_args.validation_split_percentage}%:]",
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
 
     # bert_dataset = load_dataset(
     #     'data/bookcorpus.hf',
@@ -337,24 +337,22 @@ def main():
 
     # if data_args.dataset_name is not None:
     #     # Downloading and loading a dataset from the hub.
-
-        # bookcorpus_dataset = load_dataset('bookcorpus/bookcorpus', streaming=True, save_infos=True, cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None)
-        # refinedweb_dataset = load_dataset('tiiuae/falcon-refinedweb', streaming=True, save_infos=True, cache_dir=model_args.cache_dir, use_auth_token=True if model_args.use_auth_token else None)
-        # if "validation" not in raw_datasets.keys():
-        #     raw_datasets["validation"] = load_dataset(
-        #         data_args.dataset_name,
-        #         data_args.dataset_config_name,
-        #         split=f"train[:{data_args.validation_split_percentage}%]",
-        #         cache_dir=model_args.cache_dir,
-        #         use_auth_token=True if model_args.use_auth_token else None,
-        #     )
-        #     raw_datasets["train"] = load_dataset(
-        #         data_args.dataset_name,
-        #         data_args.dataset_config_name,
-        #         split=f"train[{data_args.validation_split_percentage}%:]",
-        #         cache_dir=model_args.cache_dir,
-        #         use_auth_token=True if model_args.use_auth_token else None,
-        #     )
+    #
+    #     if "validation" not in raw_datasets.keys():
+    #         raw_datasets["validation"] = load_dataset(
+    #             data_args.dataset_name,
+    #             data_args.dataset_config_name,
+    #             split=f"train[:{data_args.validation_split_percentage}%]",
+    #             cache_dir=model_args.cache_dir,
+    #             use_auth_token=True if model_args.use_auth_token else None,
+    #         )
+    #         raw_datasets["train"] = load_dataset(
+    #             data_args.dataset_name,
+    #             data_args.dataset_config_name,
+    #             split=f"train[{data_args.validation_split_percentage}%:]",
+    #             cache_dir=model_args.cache_dir,
+    #             use_auth_token=True if model_args.use_auth_token else None,
+    #         )
     # else:
     #     data_files = {}
     #     if data_args.train_file is not None:

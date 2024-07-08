@@ -1,6 +1,6 @@
 #!/bin/bash
-module purge
-module load pytorch-gpu/py3/1.11.0
+#module purge
+#module load pytorch-gpu/py3/1.11.0
 
 python3.9 preprocessing_dataset.py \
     --train_file='data/bookcorpus.txt' \

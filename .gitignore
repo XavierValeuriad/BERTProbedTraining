@@ -2,3 +2,4 @@
 data/*
 data/model_output
 cache/*
+output/*

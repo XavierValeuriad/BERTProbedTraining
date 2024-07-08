@@ -1,6 +1,6 @@
 datasets
 torch
-tf-kera
+tf-keras
 transformers[torch]
 accelerate
 tensorflow

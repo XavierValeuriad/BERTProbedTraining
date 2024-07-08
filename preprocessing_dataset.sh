@@ -9,7 +9,7 @@ python preprocessing_dataset.py \
     --logging_first_step='True' \
     --cache_dir='/cache/' \
     --train_file='/data/bookcorpus.hf' \
-    --path_save_dataset="/data/tokenized_bookcorpus" \
+    --path_save_dataset='/data/tokenized_bookcorpus' \
     --output_dir='/output' \
     --preprocessing_num_workers=20
 

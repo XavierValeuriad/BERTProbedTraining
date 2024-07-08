@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional
 
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from datasets.utils.logging import set_verbosity
 
 import transformers
@@ -293,21 +293,27 @@ def main():
     # assert bookcorpus.features.type == wiki.features.type
     logging.info('Starting to load the dataset.')
 
-    data_files = {}
-    if data_args.train_file is not None:
-        data_files["train"] = data_args.train_file
-        extension = data_args.train_file.split(".")[-1]
-    if data_args.validation_file is not None:
-        data_files["validation"] = data_args.validation_file
-        extension = data_args.validation_file.split(".")[-1]
-    if extension == "hf":
-        extension = "text"
-    raw_datasets = load_dataset(
-        extension,
-        data_files=data_files,
-        cache_dir=model_args.cache_dir,
-        use_auth_token=True if model_args.use_auth_token else None,
+
+    raw_datasets = load_from_disk(
+        data_args.train_file,
+        cache_dir=model_args.cache_dir
     )
+
+    # data_files = {}
+    # if data_args.train_file is not None:
+    #     data_files["train"] = data_args.train_file
+    #     extension = data_args.train_file.split(".")[-1]
+    # if data_args.validation_file is not None:
+    #     data_files["validation"] = data_args.validation_file
+    #     extension = data_args.validation_file.split(".")[-1]
+    # if extension == "hf":
+    #     extension = "text"
+    # raw_datasets = load_dataset(
+    #     extension,
+    #     data_files=data_files,
+    #     cache_dir=model_args.cache_dir,
+    #     use_auth_token=True if model_args.use_auth_token else None,
+    # )
 
     # If no validation data is there, validation_split_percentage will be used to divide the dataset.
     if "validation" not in raw_datasets.keys():

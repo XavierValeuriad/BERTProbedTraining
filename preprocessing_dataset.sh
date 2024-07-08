@@ -26,7 +26,7 @@ srun python preprocessing_dataset.py \
     --log_level='info' \
     --logging_first_step='True' \
     --cache_dir='/cache/' \
-    --path_save_dataset="/data/tokenized_dataset" \
+    --path_save_dataset="/data/tokenized_bookcorpus" \
     --output_dir='/output' \
-    --preprocessing_num_workers=20
+    --preprocessing_num_workers=48
 

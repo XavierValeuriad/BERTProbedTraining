@@ -227,8 +227,6 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    model_type = 'bert-base-uncased'
-
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
     # send_example_telemetry("run_mlm", model_args, data_args)
@@ -293,7 +291,7 @@ def main():
     #
     # assert bookcorpus.features.type == wiki.features.type
     logging.info('Starting to load the dataset.')
-    bert_dataset = load_from_disk('data/train_bert.hf')
+    bert_dataset = load_from_disk('data/bookcorpus.hf')
     logging.info('Dataset fully loaded.')
 
     # if data_args.dataset_name is not None:

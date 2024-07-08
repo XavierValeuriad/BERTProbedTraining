@@ -1,6 +1,8 @@
 datasets
 torch
+tf-kera
 transformers[torch]
 accelerate
 tensorflow
 pandas
+evaluate

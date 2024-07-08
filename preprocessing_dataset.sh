@@ -1,12 +1,9 @@
 #!/bin/bash
 module purge
-module load python/3.11.5
-
-python3.11 -m ensurepip
-python3.11 -m ensurepip --upgrade
-python3.11 -m pip install --user --no-cache-dir -r requirements.txt
+module load pytorch-gpu/py3/1.11.0
 
 python3.11 preprocessing_dataset.py \
+    --train_file='data/bookcorpus.txt' \
     --do_train \
     --overwrite_output_dir \
     --max_seq_length=512 \

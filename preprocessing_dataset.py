@@ -291,8 +291,45 @@ def main():
     #
     # assert bookcorpus.features.type == wiki.features.type
     logging.info('Starting to load the dataset.')
-    bert_dataset = load_dataset('data/bookcorpus.hf')
-    logging.info('Dataset fully loaded.')
+
+    data_files = {}
+    if data_args.train_file is not None:
+        data_files["train"] = data_args.train_file
+        extension = data_args.train_file.split(".")[-1]
+    if data_args.validation_file is not None:
+        data_files["validation"] = data_args.validation_file
+        extension = data_args.validation_file.split(".")[-1]
+    if extension == "hf":
+        extension = "text"
+    raw_datasets = load_dataset(
+        extension,
+        data_files=data_files,
+        cache_dir=model_args.cache_dir,
+        use_auth_token=True if model_args.use_auth_token else None,
+    )
+
+    # If no validation data is there, validation_split_percentage will be used to divide the dataset.
+    if "validation" not in raw_datasets.keys():
+        raw_datasets["validation"] = load_dataset(
+            extension,
+            data_files=data_files,
+            split=f"train[:{data_args.validation_split_percentage}%]",
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+        raw_datasets["train"] = load_dataset(
+            extension,
+            data_files=data_files,
+            split=f"train[{data_args.validation_split_percentage}%:]",
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+
+    # bert_dataset = load_dataset(
+    #     'data/bookcorpus.hf',
+    #     cache_dir=model_args.cache_dir
+    # )
+    # logging.info('Dataset fully loaded.')
 
     # if data_args.dataset_name is not None:
     #     # Downloading and loading a dataset from the hub.
@@ -427,11 +464,11 @@ def main():
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
-    column_names = bert_dataset.column_names
-    # if training_args.do_train:
-    #     column_names = bert_dataset["train"].column_names
-    # else:
-    #     column_names = bert_dataset["validation"].column_names
+    # column_names = raw_datasets.column_names
+    if training_args.do_train:
+        column_names = raw_datasets["train"].column_names
+    else:
+        column_names = raw_datasets["validation"].column_names
     text_column_name = "text" if "text" in column_names else column_names[0]
 
     if data_args.max_seq_length is None:
@@ -470,7 +507,7 @@ def main():
             )
 
         with training_args.main_process_first(desc="dataset map tokenization"):
-            tokenized_datasets = bert_dataset.map(
+            tokenized_datasets = raw_datasets.map(
                 tokenize_function,
                 batched=True,
                 num_proc=data_args.preprocessing_num_workers,
@@ -486,7 +523,7 @@ def main():
             return tokenizer(examples[text_column_name], return_special_tokens_mask=True)
 
         with training_args.main_process_first(desc="dataset map tokenization"):
-            tokenized_datasets = bert_dataset.map(
+            tokenized_datasets = raw_datasets.map(
                 tokenize_function,
                 batched=True,
                 num_proc=data_args.preprocessing_num_workers,

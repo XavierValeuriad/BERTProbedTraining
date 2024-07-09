@@ -730,10 +730,8 @@ def main():
     #     config.update_from_string(model_args.config_overrides)
     #     logger.info(f"New config: {config}")
 
-    model = AutoModelForMaskedLM.from_pretrained(
-        model_args.model_type,
-        from_tf=False,
-        config=config,
+    model = AutoModelForMaskedLM.from_config(
+        config,
         cache_dir=model_args.cache_dir
     )
 

@@ -15,12 +15,12 @@
 #SBATCH --mail-type=begin,fail,abort,end
  
 # Nettoyage des modules charges en interactif et herites par defaut
-#module purge
-#
-## Chargement des modules
-#module load pytorch-gpu/py3/1.12.1
+module purge
 
-#python3.9 -m pip install --user --no-cache-dir -r requirements.txt
+# Chargement des modules
+module load pytorch-gpu/py3/2.2.0
+
+python3.9 -m pip install --user --no-cache-dir -r requirements.txt
  
 # Echo des commandes lancees
 set -x -e

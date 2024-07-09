@@ -9,7 +9,8 @@
 #SBATCH --time=0:20:00              # temps d'execution maximum demande (HH:MM:SS)
 #SBATCH --output=mlm_test%j.out # nom du fichier de sortie
 #SBATCH --error=mlm_test%j.out  # nom du fichier d'erreur (ici commun avec la sortie)
-#
+#SBATCH -A mwd@v100
+
 # Envoi des mails
 #SBATCH --mail-type=begin,fail,abort,end
  

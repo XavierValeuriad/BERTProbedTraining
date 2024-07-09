@@ -22,27 +22,19 @@ https://huggingface.co/models?filter=fill-mask
 
 # You can also adapt this script on your own masked language modeling task. Pointers for this are left as comments.
 
-import logging
-import math
-import os
-import sys
+import logging, math, os, sys
+from datasets.utils import logging as dataset_logging
 from dataclasses import dataclass, field
-from itertools import chain
 from typing import Optional
 
-import datasets
-from datasets import load_dataset
+
 from datasets import load_from_disk
 
 import evaluate
 import transformers
 from transformers import (
-    CONFIG_MAPPING,
     MODEL_FOR_MASKED_LM_MAPPING,
-    AutoConfig,
     AutoModelForMaskedLM,
-    AutoTokenizer,
-    DataCollatorForLanguageModeling,
     HfArgumentParser,
     Trainer,
     TrainingArguments,
@@ -50,9 +42,7 @@ from transformers import (
     set_seed, BertTokenizerFast, BertConfig,
 )
 from transformers.trainer_utils import get_last_checkpoint
-from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
-from accelerate import find_executable_batch_size
 
 from torch.distributed.elastic.multiprocessing.errors import record
 
@@ -186,7 +176,7 @@ def main():
 
     log_level = training_args.get_process_log_level()
     logger.setLevel(log_level)
-    datasets.utils.logging.set_verbosity(log_level)
+    dataset_logging.set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()

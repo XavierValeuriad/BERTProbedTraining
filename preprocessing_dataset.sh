@@ -2,7 +2,7 @@
 #module purge
 #module load pytorch-gpu/py3/1.11.0
 
-for i in $(seq 22 24);
+for i in $(seq 1 3);
 do
     python3.9 preprocessing_dataset.py \
       --train_file=data/train_bert_$i.txt \

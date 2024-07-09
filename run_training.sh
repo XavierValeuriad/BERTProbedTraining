@@ -18,7 +18,7 @@
 module purge
 
 # Chargement des modules
-module load pytorch-gpu/py3/1.11.0
+module load pytorch-gpu/py3/1.12.1
 #
 #python3.9 -m pip install --user --no-cache-dir -r requirements.txt
  

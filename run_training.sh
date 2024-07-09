@@ -16,9 +16,9 @@
  
 # Nettoyage des modules charges en interactif et herites par defaut
 module purge
-#
-## Chargement des modules
-module load pytorch-gpu/py3/1.12.1
+
+# Chargement des modules
+module load pytorch-gpu/py3/1.11.0
  
 # Echo des commandes lancees
 set -x -e

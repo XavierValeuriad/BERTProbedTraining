@@ -1,5 +1,5 @@
 datasets~=1.8.0
-torch
+torch>=2.0.0
 evaluate
 tf-keras
 transformers[torch]

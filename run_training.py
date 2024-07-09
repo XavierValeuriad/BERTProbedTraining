@@ -23,7 +23,7 @@ https://huggingface.co/models?filter=fill-mask
 # You can also adapt this script on your own masked language modeling task. Pointers for this are left as comments.
 
 import logging, math, os, sys
-from datasets.utils import logging as dataset_logging
+
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -176,7 +176,6 @@ def main():
 
     log_level = training_args.get_process_log_level()
     logger.setLevel(log_level)
-    dataset_logging.set_verbosity(log_level)
     transformers.utils.logging.set_verbosity(log_level)
     transformers.utils.logging.enable_default_handler()
     transformers.utils.logging.enable_explicit_format()

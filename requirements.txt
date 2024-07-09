@@ -1,5 +1,6 @@
 datasets
 torch
+evaluate
 tf-keras
 transformers[torch]
 accelerate

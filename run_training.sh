@@ -37,7 +37,6 @@ srun -l python -u run_training.py \
     --save_steps=2 \
     --logging_steps=300 \
     --model_type='bert-base-uncased' \
-    --config_overrides="max_position_embeddings=514,type_vocab_size=1,vocab_size=32005,bos_token_id=5,eos_token_id=6" \
     --path_load_dataset="data/tokenized_train_bert_1" \
     --output_dir='model_output/' \
     --logging_dir='model_output/logs/' \

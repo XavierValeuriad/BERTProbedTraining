@@ -604,10 +604,10 @@ class ModelArguments:
     def __post_init__(self):
         if self.model_type is None:
             raise ValueError('Please provide a model_type argument.')
-        if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
-            raise ValueError(
-                "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
-            )
+        # if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
+        #     raise ValueError(
+        #         "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
+        #     )
 
 
 

@@ -1,4 +1,4 @@
-datasets>=2.0.0
+datasets==1.8.0
 evaluate
 torch
 transformers[torch]
@@ -6,4 +6,3 @@ tf-keras
 accelerate
 tensorflow
 pandas
-packaging

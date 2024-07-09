@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=mlm_drbert     # nom du job
+#SBATCH --job-name=mlm_bert_stats     # nom du job
 #SBATCH --constraint=v100-32g
-#SBATCH --ntasks=128                   # nombre total de tache MPI (= nombre total de GPU)
+#SBATCH --ntasks=4                   # nombre total de tache MPI (= nombre total de GPU)
 #SBATCH --ntasks-per-node=4          # nombre de tache MPI par noeud (= nombre de GPU par noeud)
 #SBATCH --gres=gpu:4                 # nombre de GPU par nœud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
 #SBATCH --cpus-per-task=10           # nombre de CPU par tache (un quart du noeud ici)
 #SBATCH --hint=nomultithread         # hyperthreading desactive
-#SBATCH --time=20:00:00              # temps d'execution maximum demande (HH:MM:SS)
+#SBATCH --time=0:20:00              # temps d'execution maximum demande (HH:MM:SS)
 #SBATCH --output=mlm_test%j.out # nom du fichier de sortie
 #SBATCH --error=mlm_test%j.out  # nom du fichier d'erreur (ici commun avec la sortie)
 #
@@ -30,26 +30,26 @@ export CUDA_LAUNCH_BLOCKING=1
 export NCCL_ASYNC_ERROR_HANDLING=1
 
 srun -l python -u run_train_jeanzay.py \
+    --num_train_epochs=1 \
+    --save_steps=2 \
+    --logging_steps=300 \
     --model_type='bert-base-uncased' \
     --config_overrides="max_position_embeddings=514,type_vocab_size=1,vocab_size=32005,bos_token_id=5,eos_token_id=6" \
-    --path_load_dataset="/data/tokenized_dataset" \
-    --output_dir='/model_output/' \
-    --logging_dir='/model_output/logs/' \
+    --path_load_dataset="data/tokenized_train_bert_1" \
+    --output_dir='model_output/' \
+    --logging_dir='model_output/logs/' \
     --per_device_train_batch_size=32 \
     --do_train \
     --warmup_steps=10000 \
     --overwrite_output_dir \
     --max_seq_length=512 \
-    --logging_steps=300 \
     --report_to='tensorboard' \
     --save_strategy='steps' \
-    --save_steps=300 \
     --skip_memory_metrics='False' \
     --log_level='info' \
     --seed=42 \
-    --data_seed=12 \
+    --data_seed=42 \
     --logging_first_step='True' \
-    --num_train_epochs=400 \
     --fp16 \
     --ddp_timeout=600 \
     --ddp_find_unused_parameters='False' \

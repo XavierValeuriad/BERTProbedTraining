@@ -730,10 +730,7 @@ def main():
     #     config.update_from_string(model_args.config_overrides)
     #     logger.info(f"New config: {config}")
 
-    model = AutoModelForMaskedLM.from_config(
-        config,
-        cache_dir=model_args.cache_dir
-    )
+    model = AutoModelForMaskedLM.from_config(config)
 
     model.resize_token_embeddings(len(tokenizer))
 

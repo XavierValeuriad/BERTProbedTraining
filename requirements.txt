@@ -1,8 +1,8 @@
 datasets>=1.8.0
-evaluate
-torch~=1.13.1
-tf-keras
 transformers[torch]~=3.5.1
+evaluate
+torch
+tf-keras
 accelerate
 tensorflow
 pandas

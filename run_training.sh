@@ -30,7 +30,7 @@ export CUDA_LAUNCH_BLOCKING=1
 # force crashing on nccl issues like hanging broadcast
 export NCCL_ASYNC_ERROR_HANDLING=1
 
-srun -l python -u run_train.py \
+srun -l python -u run_training.py \
     --num_train_epochs=1 \
     --save_steps=2 \
     --logging_steps=300 \

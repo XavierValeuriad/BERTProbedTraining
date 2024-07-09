@@ -4,40 +4,40 @@
 
 
 python3.9 preprocessing_dataset.py \
-  --train_file='data/train_bert_4.txt' \
+  --train_file='data/train_bert_1.txt' \
   --do_train \
   --overwrite_output_dir \
   --max_seq_length=512 \
   --log_level='info' \
   --logging_first_step='True' \
   --cache_dir='cache' \
-  --path_save_dataset='data/tokenized_train_bert_4' \
+  --path_save_dataset='data/tokenized_train_bert_1' \
   --output_dir='output' \
   --overwrite_cache='False' \
   --preprocessing_num_workers=20
 
 python3.9 preprocessing_dataset.py \
-  --train_file='data/train_bert_5.txt' \
+  --train_file='data/train_bert_2.txt' \
   --do_train \
   --overwrite_output_dir \
   --max_seq_length=512 \
   --log_level='info' \
   --logging_first_step='True' \
   --cache_dir='cache' \
-  --path_save_dataset='data/tokenized_train_bert_5' \
+  --path_save_dataset='data/tokenized_train_bert_2' \
   --output_dir='output' \
   --overwrite_cache='False' \
   --preprocessing_num_workers=20
 
 python3.9 preprocessing_dataset.py \
-  --train_file='data/train_bert_6.txt' \
+  --train_file='data/train_bert_3.txt' \
   --do_train \
   --overwrite_output_dir \
   --max_seq_length=512 \
   --log_level='info' \
   --logging_first_step='True' \
   --cache_dir='cache' \
-  --path_save_dataset='data/tokenized_train_bert_6' \
+  --path_save_dataset='data/tokenized_train_bert_3' \
   --output_dir='output' \
   --overwrite_cache='False' \
   --preprocessing_num_workers=20

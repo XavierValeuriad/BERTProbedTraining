@@ -478,21 +478,21 @@ class DataTrainingArguments:
     # dataset_name: Optional[str] = field(
     #     default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
     # )
-    # path_load_dataset: Optional[str] = field(
-    #     default=None, metadata={"help": "The path to load the tokenized dataset."}
-    # )
+    path_load_dataset: Optional[str] = field(
+        default=None, metadata={"help": "The path to load the tokenized dataset."}
+    )
     # dataset_config_name: Optional[str] = field(
     #     default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
     # )
-    # overwrite_cache: bool = field(
-    #     default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
-    # )
-    # validation_split_percentage: Optional[int] = field(
-    #     default=5,
-    #     metadata={
-    #         "help": "The percentage of the train set used as validation set in case there's no validation split"
-    #     },
-    # )
+    overwrite_cache: bool = field(
+        default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+    )
+    validation_split_percentage: Optional[int] = field(
+        default=5,
+        metadata={
+            "help": "The percentage of the train set used as validation set in case there's no validation split"
+        },
+    )
     max_seq_length: Optional[int] = field(
         default=None,
         metadata={
@@ -502,10 +502,10 @@ class DataTrainingArguments:
             )
         },
     )
-    # preprocessing_num_workers: Optional[int] = field(
-    #     default=None,
-    #     metadata={"help": "The number of processes to use for the preprocessing."},
-    # )
+    preprocessing_num_workers: Optional[int] = field(
+        default=None,
+        metadata={"help": "The number of processes to use for the preprocessing."},
+    )
     mlm_probability: float = field(
         default=0.15, metadata={"help": "Ratio of tokens to mask for masked language modeling loss"}
     )

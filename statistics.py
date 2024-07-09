@@ -13,8 +13,7 @@ from transformers import TrainerCallback, TrainingArguments, TrainerState, Train
 from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
     _torch_collate_batch, _numpy_collate_batch
 
-from jeanzay.homemade.utils.hash_tensor import hash_tensor
-from lib.utils import create_all_subfolders_if_not_exists
+from utils import create_all_subfolders_if_not_exists
 
 _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 _STATISTICS_DIRECTORY_PATH = os.path.join(

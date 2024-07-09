@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-import evaluate
+# import evaluate
 import transformers
 from transformers import (
     MODEL_FOR_MASKED_LM_MAPPING,
@@ -292,7 +292,7 @@ def main():
                 logits = logits[0]
             return logits.argmax(dim=-1)
 
-        metric = evaluate.load("./accuracy.py")
+        # metric = evaluate.load("./accuracy.py")
 
         def compute_metrics(eval_preds):
             preds, labels = eval_preds
@@ -353,7 +353,7 @@ def main():
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
 
-        metrics = trainer.evaluate()
+        # metrics = trainer.evaluate()
 
         max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))

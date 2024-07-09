@@ -561,13 +561,13 @@ def main():
         rank=idr_torch.rank
     )
 
-    parser, data_args = HfArgumentParser((DataTrainingArguments, TrainingArguments, ))
+    parser = HfArgumentParser((DataTrainingArguments, TrainingArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        training_args = parser.parse_args_into_dataclasses()
+        data_args, training_args = parser.parse_args_into_dataclasses()
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.

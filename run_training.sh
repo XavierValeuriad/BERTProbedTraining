@@ -20,7 +20,7 @@
 ## Chargement des modules
 #module load pytorch-gpu/py3/1.12.1
 
-python3.9 -m pip install --user --no-cache-dir -r requirements.txt
+#python3.9 -m pip install --user --no-cache-dir -r requirements.txt
  
 # Echo des commandes lancees
 set -x -e

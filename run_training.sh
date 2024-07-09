@@ -7,8 +7,8 @@
 #SBATCH --cpus-per-task=10           # nombre de CPU par tache (un quart du noeud ici)
 #SBATCH --hint=nomultithread         # hyperthreading desactive
 #SBATCH --time=0:20:00              # temps d'execution maximum demande (HH:MM:SS)
-#SBATCH --output=mlm_test%j.out # nom du fichier de sortie
-#SBATCH --error=mlm_test%j.out  # nom du fichier d'erreur (ici commun avec la sortie)
+#SBATCH --output=./logs/mlm_test%j.out # nom du fichier de sortie
+#SBATCH --error=./logs/mlm_test%j.out  # nom du fichier d'erreur (ici commun avec la sortie)
 #SBATCH -A mwd@v100
 
 # Envoi des mails
@@ -30,7 +30,7 @@ export CUDA_LAUNCH_BLOCKING=1
 # force crashing on nccl issues like hanging broadcast
 export NCCL_ASYNC_ERROR_HANDLING=1
 
-srun -l python -u run_train_jeanzay.py \
+srun -l python -u run_train.py \
     --num_train_epochs=1 \
     --save_steps=2 \
     --logging_steps=300 \

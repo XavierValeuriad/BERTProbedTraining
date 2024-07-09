@@ -54,7 +54,6 @@ from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
 from accelerate import find_executable_batch_size
 
-import torch
 from torch.distributed.elastic.multiprocessing.errors import record
 
 import torch.distributed as dist

@@ -1,6 +1,6 @@
 datasets~=1.8.0
-torch>=2.0.0
 evaluate
+torch
 tf-keras
 transformers[torch]
 accelerate

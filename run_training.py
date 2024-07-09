@@ -546,6 +546,72 @@ class DataTrainingArguments:
             raise ValueError("Need path to load the tokenized dataset (path_load_dataset).")
 
 
+@dataclass
+class ModelArguments:
+    """
+    Arguments pertaining to which model/config/tokenizer we are going to fine-tune, or train from scratch.
+    """
+
+    # model_name_or_path: Optional[str] = field(
+    #     default=None,
+    #     metadata={
+    #         "help": (
+    #             "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
+    #         )
+    #     },
+    # )
+    model_type: Optional[str] = field(
+        default=None,
+        metadata={"help": "If training from scratch, pass a model type from the list: " + ", ".join(MODEL_TYPES)},
+    )
+    config_overrides: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "Override some existing default config settings when a model is trained from scratch. Example: "
+                "n_embd=10,resid_pdrop=0.2,scale_attn_weights=false,summary_type=cls_index"
+            )
+        },
+    )
+    # config_name: Optional[str] = field(
+    #     default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+    # )
+    # tokenizer_name: Optional[str] = field(
+    #     default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+    # )
+    cache_dir: Optional[str] = field(
+        default=None,
+        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+    )
+    # use_fast_tokenizer: bool = field(
+    #     default=True,
+    #     metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
+    # )
+    # model_revision: str = field(
+    #     default="main",
+    #     metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
+    # )
+    # use_auth_token: bool = field(
+    #     default=False,
+    #     metadata={
+    #         "help": (
+    #             "Will use the token generated when running `huggingface-cli login` (necessary to use this script "
+    #             "with private models)."
+    #         )
+    #     },
+    # )
+    #
+    def __post_init__(self):
+        if self.model_type is None:
+            raise ValueError('Please provide a model_type argument.')
+        if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
+            raise ValueError(
+                "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
+            )
+
+
+
+
 @record
 def main():
     # See all possible arguments in src/transformers/training_args.py
@@ -561,13 +627,13 @@ def main():
         rank=idr_torch.rank
     )
 
-    parser = HfArgumentParser((DataTrainingArguments, TrainingArguments))
+    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
-        data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        data_args, training_args = parser.parse_args_into_dataclasses()
+        model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
@@ -629,16 +695,6 @@ def main():
 
     tokenized_datasets = load_from_disk(data_args.path_load_dataset)
 
-    # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
-    # https://huggingface.co/docs/datasets/loading_datasets.html.
-
-    # Load pretrained model and tokenizer
-    #
-    # Distributed training:
-    # The .from_pretrained methods guarantee that only one local process can concurrently
-    # download model & vocab.
-    model_name = 'bert-base-uncased'
-
     tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast.hf')
 
     config = BertConfig.from_dict(
@@ -669,11 +725,16 @@ def main():
         }
     )
 
+    if model_args.config_overrides is not None:
+        logger.info(f"Overriding config: {model_args.config_overrides}")
+        config.update_from_string(model_args.config_overrides)
+        logger.info(f"New config: {config}")
+
     model = AutoModelForMaskedLM.from_pretrained(
-        model_name,
+        model_args.model_type,
         from_tf=False,
         config=config,
-        cache_dir='/cache/'
+        cache_dir=model_args.cache_dir
     )
 
     model.resize_token_embeddings(len(tokenizer))

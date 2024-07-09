@@ -6,3 +6,4 @@ transformers[torch]
 accelerate
 tensorflow
 pandas
+packaging

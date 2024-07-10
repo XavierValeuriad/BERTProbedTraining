@@ -834,8 +834,6 @@ def main():
     callback.state = trainer.state
     callback.control = trainer.control
     callback.tokenizer = tokenizer
-    callback.train_dataloader = trainer.get_train_dataloader()
-    callback.eval_dataloader = trainer.get_eval_dataloader()
     callback.model = model
 
     # Training

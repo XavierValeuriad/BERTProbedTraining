@@ -2,7 +2,7 @@
 #SBATCH --job-name=mlm_bert_stats     # nom du job
 #SBATCH  -C a100
 #SBATCH --ntasks=32                   # nombre total de tache MPI (= nombre total de GPU)
-#SBATCH --ntasks-per-node=8          # nombre de tache MPI par noeud (= nombre de GPU par noeud)
+#SBATCH --gres=gpu:8                 # nombre de GPU par nœud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
 #SBATCH --cpus-per-task=10           # nombre de CPU par tache (un quart du noeud ici)
 #SBATCH --hint=nomultithread         # hyperthreading desactive
 #SBATCH --time=0:20:00              # temps d'execution maximum demande (HH:MM:SS)

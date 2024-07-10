@@ -3,7 +3,6 @@ import logging, os, sys
 from datasets import load_from_disk, concatenate_datasets
 from datasets.utils.logging import set_verbosity
 
-import transformers
 from transformers import (
     MODEL_FOR_MASKED_LM_MAPPING,
     HfArgumentParser,
@@ -12,6 +11,8 @@ from transformers import (
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
+
+from transformers.utils.logging import set_verbosity, enable_default_handler, enable_explicit_format
 
 from torch.distributed.elastic.multiprocessing.errors import record
 
@@ -60,9 +61,9 @@ def main():
     log_level = logging.DEBUG
     logger.setLevel(log_level)
     set_verbosity(log_level)
-    transformers.utils.logging.set_verbosity(log_level)
-    transformers.utils.logging.enable_default_handler()
-    transformers.utils.logging.enable_explicit_format()
+    set_verbosity(log_level)
+    enable_default_handler()
+    enable_explicit_format()
 
     # print(training_args.device)
 

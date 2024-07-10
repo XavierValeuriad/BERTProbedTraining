@@ -149,8 +149,8 @@ class CallbackForGradientStatistics(TrainerCallback):
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
-    def on_epoch_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        print(f'CallbackForGradientStatistics.on_epoch_begin.')
+    def on_substep_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        print(f'CallbackForGradientStatistics.on_substep_end : calling.')
         try:
             # model = kwargs["model"]
             model = CallbackForGradientStatistics.CURRENT_MODEL

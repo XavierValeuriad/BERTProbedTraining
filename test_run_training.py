@@ -395,7 +395,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         #     _masking_data
         # )
 
-        logging.info(f'Saving masking data : {_masking_data}.')
+        print(f'Saving masking data : {_masking_data}.')
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
@@ -406,7 +406,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             _masking_data
         )
 
-        logging.info(f'Saved masking data : {_masking_data}.')
+        print(f'Saved masking data : {_masking_data}.')
 
 
         inputs[indices_random] = random_words[indices_random]

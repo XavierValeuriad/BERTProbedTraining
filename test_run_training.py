@@ -125,10 +125,14 @@ _STATISTICS_DIRECTORY_PATH = 'statistics'
 
 
 def _save_json(statistics: dict) -> None:
-    with open(os.path.join(_STATISTICS_DIRECTORY_PATH, statistics['id']), "w") as file:
-        file.write(
-            json.dumps(statistics, indent=4)
-        )
+    try:
+        with open(os.path.join(_STATISTICS_DIRECTORY_PATH, statistics['id']), "w") as file:
+            file.write(
+                json.dumps(statistics, indent=4)
+            )
+        print(f'Statistics saved: {statistics}.')
+    except Exception as e:
+        print(f'Exception raised while saving statistics: {e}.')
 
 class CallbackForGradientStatistics(TrainerCallback):
 
@@ -399,14 +403,14 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         #     _masking_data
         # )
 
-        print(f'Saving masking data : {_masking_data}.')
+        #print(f'Saving masking data : {_masking_data}.')
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
             _masking_data
         )
 
-        print(f'Saved masking data : {_masking_data}.')
+        #print(f'Saved masking data : {_masking_data}.')
 
 
         inputs[indices_random] = random_words[indices_random]

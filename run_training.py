@@ -64,36 +64,37 @@ from transformers import TrainerCallback, TrainingArguments, TrainerState, Train
 from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
     _torch_collate_batch, _numpy_collate_batch
 
-def create_folder_if_not_exists(folder_path: str):
-    if not os.path.exists(folder_path):
-        logging.info(f'Creating folder `{folder_path}`.')
-        os.makedirs(folder_path)
+# def create_folder_if_not_exists(folder_path: str):
+#     if not os.path.exists(folder_path):
+#         logging.info(f'Creating folder `{folder_path}`.')
+#         os.makedirs(folder_path)
 
 
-def create_all_subfolders_if_not_exists(folder_path: str):
-    logging.info(f'Checking if `{folder_path}` exist, and creating it if not.')
-    if folder_path:
-        path = os.path.normpath(folder_path)
-        splitted_path = path.split(os.sep)
-        if len(splitted_path) == 1:
-            if '.' not in path:
-                create_folder_if_not_exists(splitted_path[0])
-        elif len(splitted_path) > 1:
-            subpath = os.path.join(path[0], splitted_path[1])
-            if '.' not in subpath:
-                create_folder_if_not_exists(subpath)
-            for i, _directory in enumerate(splitted_path[2:]):
-                if '.' not in _directory:
-                    subpath = os.path.join(subpath, _directory)
-                    create_folder_if_not_exists(subpath)
-                else:
-                    logging.warning(f"Only directories, which means with names not containing a dot '.', are created. Thus, it is assumed that {os.path.join(splitted_path[i:])} is a file.")
-                    break
+# def create_all_subfolders_if_not_exists(folder_path: str):
+#     logging.info(f'Checking if `{folder_path}` exist, and creating it if not.')
+#     if folder_path:
+#         path = os.path.normpath(folder_path)
+#         splitted_path = path.split(os.sep)
+#         if len(splitted_path) == 1:
+#             if '.' not in path:
+#                 create_folder_if_not_exists(splitted_path[0])
+#         elif len(splitted_path) > 1:
+#             subpath = os.path.join(path[0], splitted_path[1])
+#             if '.' not in subpath:
+#                 create_folder_if_not_exists(subpath)
+#             for i, _directory in enumerate(splitted_path[2:]):
+#                 if '.' not in _directory:
+#                     subpath = os.path.join(subpath, _directory)
+#                     create_folder_if_not_exists(subpath)
+#                 else:
+#                     logging.warning(f"Only directories, which means with names not containing a dot '.', are created. Thus, it is assumed that {os.path.join(splitted_path[i:])} is a file.")
+#                     break
 
 
 import torch
 from torch import Tensor
 
+from utils import create_folder_if_not_exists
 
 MULTIPLIER = 6364136223846793005
 INCREMENT = 1
@@ -120,10 +121,8 @@ def _reduce_last_axis(x: Tensor) -> Tensor:
 
 
 _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
-_STATISTICS_DIRECTORY_PATH = os.path.join(
-    'statistics'
-)
-create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
+_STATISTICS_DIRECTORY_PATH = 'statistics'
+# create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
 
 
 def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
@@ -143,7 +142,7 @@ class CallbackForGradientStatistics(TrainerCallback):
         _STATISTICS_DIRECTORY_PATH,
         'gradient'
     )
-    create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    # create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
@@ -336,7 +335,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         _STATISTICS_DIRECTORY_PATH,
         'masking'
     )
-    create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    # create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
 
     def torch_mask_tokens(self, inputs: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
         """

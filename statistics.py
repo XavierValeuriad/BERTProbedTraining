@@ -35,11 +35,13 @@ class CallbackForGradientStatistics(TrainerCallback):
         self.norm_type = float(norm_type)
 
     CURRENT_MODEL = None
-    STATISTICS_DIRECTORY_PATH = os.path.join(
-        _STATISTICS_DIRECTORY_PATH,
-        'gradient'
+    GRADIENT_STATISTICS_DIRECTORY_NAME = 'gradient'
+    create_all_subfolders_if_not_exists(
+        os.path.join(
+            _STATISTICS_DIRECTORY_PATH,
+            GRADIENT_STATISTICS_DIRECTORY_NAME
+        )
     )
-    create_all_subfolders_if_not_exists(STATISTICS_DIRECTORY_PATH)
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
@@ -71,7 +73,7 @@ class CallbackForGradientStatistics(TrainerCallback):
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(CallbackForGradientStatistics.STATISTICS_DIRECTORY_PATH, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
             gradient_statistics
         )
 
@@ -228,11 +230,13 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             batch["labels"] = labels
         return batch
 
-    STATISTICS_DIRECTORY_PATH = os.path.join(
-        _STATISTICS_DIRECTORY_PATH,
-        'masking'
+    MASKING_STATISTICS_DIRECTORY_NAME = 'masking'
+    create_all_subfolders_if_not_exists(
+        os.path.join(
+            _STATISTICS_DIRECTORY_PATH,
+            MASKING_STATISTICS_DIRECTORY_NAME
+        )
     )
-    create_all_subfolders_if_not_exists(STATISTICS_DIRECTORY_PATH)
 
     def torch_mask_tokens(self, inputs: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
         """
@@ -284,7 +288,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(StatisticalDataCollatorForLanguageModeling.STATISTICS_DIRECTORY_PATH, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
             _masking_data
         )
 

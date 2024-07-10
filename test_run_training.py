@@ -835,7 +835,7 @@ def main():
         eval_dataset=eval_dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        optimizer=(AdamW(model.parameters(), lr=training_args.learning_rate, eps=training_args.adam_epsilon), None),
+        optimizers=(AdamW(model.parameters(), lr=training_args.learning_rate, eps=training_args.adam_epsilon), None),
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
         # callbacks=[callback],
         # optimizer=(optimizer, None),

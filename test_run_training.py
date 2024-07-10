@@ -137,8 +137,8 @@ def _save_json(subpath: str, statistics: dict) -> None:
 
 class CallbackForGradientStatistics(TrainerCallback):
 
-    def __init__(self, optimizer: torch.optim.Optimizer, scheduler: torch.optim.lr_scheduler.LambdaLR, norm_type: float = 2.0):
-        super().__init__(optimizer=optimizer, lr_scheduler=scheduler)
+    def __init__(self, optimizer: torch.optim.Optimizer, norm_type: float = 2.0):
+        super().__init__(optimizer=optimizer)
         print(f'CallbackForGradientStatistics.__init__(...) : calling.')
         logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
@@ -149,8 +149,8 @@ class CallbackForGradientStatistics(TrainerCallback):
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
-    def on_substep_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        print(f'CallbackForGradientStatistics.on_substep_end.')
+    def on_optimizer_step(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        print(f'CallbackForGradientStatistics.on_optimizer_step.')
         try:
             # model = kwargs["model"]
             model = CallbackForGradientStatistics.CURRENT_MODEL
@@ -819,7 +819,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[CallbackForGradientStatistics(optimizer=optimizer, scheduler=None)],
+        callbacks=[CallbackForGradientStatistics(optimizer=optimizer)],
         optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()

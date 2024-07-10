@@ -809,7 +809,6 @@ def main():
     )
 
     optimizer = AdamW(model.parameters())
-    scheduler = get_linear_schedule_with_warmup()
 
     # Initialize our Trainer
     trainer = Trainer(
@@ -820,8 +819,8 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[CallbackForGradientStatistics(optimizer=optimizer, scheduler=scheduler)],
-        optimizer=(optimizer, scheduler),
+        callbacks=[CallbackForGradientStatistics(optimizer=optimizer, scheduler=None)],
+        optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,

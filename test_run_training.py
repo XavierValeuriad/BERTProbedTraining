@@ -230,8 +230,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     _ATOMIC_COUNTER = itertools.count()
 
     def __post_init__(self):
-        print(f'CallbackForGradientStatistics.__post_init__(...) : calling.')
-        logging.info(f'CallbackForGradientStatistics.__post_init__(...) : calling.')
+        print(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
+        logging.info(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
         if self.mlm and self.tokenizer.mask_token is None:
             raise ValueError(
                 "This tokenizer does not have a mask token which is necessary for masked language modeling. "

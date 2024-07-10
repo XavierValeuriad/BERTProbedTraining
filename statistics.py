@@ -13,7 +13,7 @@ from transformers import TrainerCallback, TrainingArguments, TrainerState, Train
 from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
     _torch_collate_batch, _numpy_collate_batch
 
-from utils import create_all_subfolders_if_not_exists
+from utils import create_all_subfolders_if_not_exists, hash_tensor
 
 _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 _STATISTICS_DIRECTORY_PATH = os.path.join(
@@ -58,18 +58,24 @@ class CallbackForGradientStatistics(TrainerCallback):
         # Computing gradient statistics (per layer)
         _index = 0
         gradient_statistics = {
-            {
-                f'{parameter_name}#{++_index}':{
-                    'norm': parameters.grad.data.norm(self.norm_type).item(),
-                    'argmax': parameters.grad.data.argmax().item(),
-                    'max': parameters.grad.data.max().item(),
-                    'argmin': parameters.grad.data.argmin().item(),
-                    'min': parameters.grad.data.min().item(),
-                    'histograms': torch.histogram(parameters.grad.data, bins=24)
-                }
-                for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
+            f'{parameter_name}#{++_index}':{
+                'norm': parameters.grad.data.norm(self.norm_type).item(),
+                'argmax': parameters.grad.data.argmax().item(),
+                'max': parameters.grad.data.max().item(),
+                'argmin': parameters.grad.data.argmin().item(),
+                'min': parameters.grad.data.min().item(),
+                'histograms': torch.histogram(parameters.grad.data, bins=24)
             }
+            for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
         }
+
+        # _save_json(
+        #     os.path.join(
+        #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+        #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+        #     ),
+        #     gradient_statistics
+        # )
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
@@ -286,9 +292,18 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             'random_token_ids': random_token_ids
         }
 
+        # _save_json(
+        #     os.path.join(StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+        #                  f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+        #     _masking_data
+        # )
+
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(
+                StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+                f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+            ),
             _masking_data
         )
 

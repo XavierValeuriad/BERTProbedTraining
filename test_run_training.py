@@ -810,7 +810,6 @@ def main():
 
     # optimizer = AdamW(model.parameters())
 
-    callback = CallbackForGradientStatistics()
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -820,7 +819,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[],
+        callbacks=[CallbackForGradientStatistics()],
         # optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()

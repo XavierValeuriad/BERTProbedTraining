@@ -38,7 +38,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
     is_torch_tpu_available,
-    set_seed, BertTokenizerFast, BertConfig,
+    set_seed, BertTokenizerFast, BertConfig, AdamW, get_linear_schedule_with_warmup,
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
@@ -137,7 +137,8 @@ def _save_json(subpath: str, statistics: dict) -> None:
 
 class CallbackForGradientStatistics(TrainerCallback):
 
-    def __init__(self, norm_type: float = 2.0):
+    def __init__(self, optimizer: torch.optim.Optimizer, scheduler: torch.optim.lr_scheduler.LambdaLR, norm_type: float = 2.0):
+        super().__init__(optimizer=optimizer, lr_scheduler=scheduler)
         print(f'CallbackForGradientStatistics.__init__(...) : calling.')
         logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
@@ -807,6 +808,9 @@ def main():
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
+    optimizer = AdamW()
+    scheduler = get_linear_schedule_with_warmup()
+
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -816,7 +820,8 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[CallbackForGradientStatistics()],
+        callbacks=[CallbackForGradientStatistics(optimizer=optimizer, scheduler=scheduler)],
+        optimizer=(optimizer, scheduler),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,

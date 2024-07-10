@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=mlm_bert_stats     # nom du job
-#SBATCH  -C v100-32g
+#SBATCH  -C a100-32g
 #SBATCH --ntasks=4                   # nombre total de tache MPI (= nombre total de GPU)
 #SBATCH --ntasks-per-node=4          # nombre de tache MPI par noeud (= nombre de GPU par noeud)
 #SBATCH --gres=gpu:4                 # nombre de GPU par nœud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
@@ -9,7 +9,7 @@
 #SBATCH --time=0:20:00              # temps d'execution maximum demande (HH:MM:SS)
 #SBATCH --output=./logs/mlm_test%j.out # nom du fichier de sortie
 #SBATCH --error=./logs/mlm_test%j.out  # nom du fichier d'erreur (ici commun avec la sortie)
-#SBATCH -A mwd@v100
+#SBATCH -A mwd@a100
 
 # Envoi des mails
 #SBATCH --mail-type=begin,fail,abort,end
@@ -18,7 +18,7 @@
 module purge
 
 # Chargement des modules
-module load pytorch-gpu/py3/1.12.1
+module load pytorch-gpu/py3/1.11.0
 #
 #python3.9 -m pip install --user --no-cache-dir -r requirements.txt
  

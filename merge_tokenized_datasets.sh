@@ -1,4 +1,4 @@
-python3.9 merging_tokenized_datasets.py \
+python3.9 merge_tokenized_datasets.py \
   --do_train \
   --overwrite_output_dir \
   --max_seq_length=512 \

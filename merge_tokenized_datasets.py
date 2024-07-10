@@ -15,7 +15,7 @@ from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
 
-require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/language-modeling/requirements.txt")
+require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/language-modeling/requirements_training.txt")
 
 logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())

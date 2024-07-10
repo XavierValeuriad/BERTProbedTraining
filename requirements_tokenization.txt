@@ -1,0 +1,6 @@
+datasets==1.8.0
+torch
+tf-keras
+accelerate
+tensorflow
+pandas

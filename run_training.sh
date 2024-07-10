@@ -19,7 +19,7 @@ module purge
 # Chargement des modules
 module load pytorch-gpu/py3/2.3.0
 #
-#python3.9 -m pip install --user --no-cache-dir -r requirements.txt
+#python3.9 -m pip install --user --no-cache-dir -r requirements_training.txt
  
 # Echo des commandes lancees
 set -x -e

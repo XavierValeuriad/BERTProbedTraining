@@ -130,7 +130,7 @@ def _save_json(subpath: str, statistics: dict) -> None:
             file.write(
                 json.dumps(statistics, indent=4).encode('utf-8')
             )
-        print(f'Statistics saved: {statistics}.')
+        # print(f'Statistics saved: {statistics}.')
     except Exception as e:
         print(f'Exception raised while saving statistics: {e}.')
 

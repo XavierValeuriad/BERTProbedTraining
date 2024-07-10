@@ -406,7 +406,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             os.path.join(
                 StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
                 f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(
-                    ' ', '_').replace(',', '_'),
+                    ' ', '_').replace(',', '_')
+            ),
             _masking_data
         )
 

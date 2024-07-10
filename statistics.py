@@ -32,6 +32,8 @@ def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
 class CallbackForGradientStatistics(TrainerCallback):
 
     def __init__(self, norm_type: float = 2.0):
+        print(f'CallbackForGradientStatistics.__init__(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
 
     CURRENT_MODEL = None
@@ -53,6 +55,8 @@ class CallbackForGradientStatistics(TrainerCallback):
             raise Exception('Please set the current model into the class variable StatisticalCallback.CURRENT_MODEL.')
 
         epoch = state.epoch
+        logging.info(f'CallbackForGradientStatistics.on_substep_end : {epoch}.')
+
         CallbackForGradientStatistics._CURRENT_EPOCH = epoch
 
         # Computing gradient statistics (per layer)
@@ -122,6 +126,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     _ATOMIC_COUNTER = itertools.count()
 
     def __post_init__(self):
+        print(f'CallbackForGradientStatistics.__post_init__(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.__post_init__(...) : calling.')
         if self.mlm and self.tokenizer.mask_token is None:
             raise ValueError(
                 "This tokenizer does not have a mask token which is necessary for masked language modeling. "
@@ -248,7 +254,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         """
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        import torch
+        print(f'CallbackForGradientStatistics.torch_mask_tokens(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.torch_mask_tokens(...) : calling.')
 
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)

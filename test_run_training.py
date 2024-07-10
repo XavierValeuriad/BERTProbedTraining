@@ -808,7 +808,7 @@ def main():
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
-    optimizer = AdamW()
+    optimizer = AdamW(model.parameters)
     scheduler = get_linear_schedule_with_warmup()
 
     # Initialize our Trainer

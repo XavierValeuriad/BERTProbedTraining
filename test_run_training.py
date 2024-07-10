@@ -137,7 +137,7 @@ def _save_json(subpath: str, statistics: dict) -> None:
 
 class CallbackForGradientStatistics(TrainerCallback):
 
-    def __init__(self, optimizer: torch.optim.Optimizer, norm_type: float = 2.0):
+    def __init__(self, norm_type: float = 2.0):
         super().__init__()
         print(f'CallbackForGradientStatistics.__init__(...) : calling.')
         logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')

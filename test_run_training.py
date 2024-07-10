@@ -138,7 +138,7 @@ def _save_json(subpath: str, statistics: dict) -> None:
 class CallbackForGradientStatistics(TrainerCallback):
 
     def __init__(self, optimizer: torch.optim.Optimizer, norm_type: float = 2.0):
-        super().__init__(optimizer=optimizer)
+        super().__init__()
         print(f'CallbackForGradientStatistics.__init__(...) : calling.')
         logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
@@ -819,7 +819,7 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[CallbackForGradientStatistics(optimizer=optimizer)],
+        callbacks=[CallbackForGradientStatistics()],
         optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()

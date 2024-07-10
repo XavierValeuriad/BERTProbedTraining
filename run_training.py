@@ -719,7 +719,7 @@ def main():
     # tokenized_datasets = load_from_disk(data_args.path_load_dataset)
     tokenized_datasets = concatenate_datasets(
         [
-            load_from_disk(f'data/tokenized_train_bert_{i}') for i in range(1, 25)
+            load_from_disk(f'data/tokenized_train_bert_{i}')['train'] for i in range(1, 25)
         ]
     )
 

@@ -386,12 +386,14 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
 
         _masking_data = {
             'input_hash': hash_tensor(inputs),
-            'replaced_token_ids_size': replaced_token_ids.size().tolist(),
+            'replaced_token_ids_size': list(replaced_token_ids.size()),
             'replaced_token_ids': replaced_token_ids.tolist(),
             'replaced_token_locations': replaced_token_locations.tolist(),
-            'randomized_token_ids_size': randomized_token_ids.size().tolist(),
+            'randomized_token_ids_size': list(randomized_token_ids.size()),
             'randomized_token_ids': randomized_token_ids.tolist(),
+            'randomized_token_locations_size': list(randomized_token_locations.size()),
             'randomized_token_locations': randomized_token_locations.tolist(),
+            'random_token_ids_size': list(random_token_ids.size()),
             'random_token_ids': random_token_ids.tolist()
         }
 

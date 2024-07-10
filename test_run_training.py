@@ -124,8 +124,8 @@ _STATISTICS_DIRECTORY_PATH = 'statistics'
 # create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
 
 
-def _save_json(subfolder_and_file: str, statistics: dict) -> None:
-    with open(os.path.join(_STATISTICS_DIRECTORY_PATH, subfolder_and_file), "w") as file:
+def _save_json(statistics: dict) -> None:
+    with open(os.path.join(_STATISTICS_DIRECTORY_PATH, statistics['id']), "w") as file:
         file.write(
             json.dumps(statistics, indent=4)
         )
@@ -381,6 +381,10 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         random_token_ids = random_words
 
         _masking_data = {
+            'id': os.path.join(
+                StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+                f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
+            ),
             'input_hash': hash_tensor(inputs),
             'replaced_token_ids': replaced_token_ids,
             'replaced_token_locations': replaced_token_locations,
@@ -399,10 +403,6 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(
-                StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
-                f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
-            ),
             _masking_data
         )
 

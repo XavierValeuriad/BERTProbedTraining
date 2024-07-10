@@ -19,7 +19,7 @@ Fine-tuning the library models for masked language modeling (BERT, ALBERT, RoBER
 Here is the full list of checkpoints on the hub that can be fine-tuned by this script:
 https://huggingface.co/models?filter=fill-mask
 """
-
+import gzip
 # You can also adapt this script on your own masked language modeling task. Pointers for this are left as comments.
 
 import logging, math, os, sys
@@ -126,7 +126,7 @@ _STATISTICS_DIRECTORY_PATH = 'statistics'
 
 def _save_json(subpath: str, statistics: dict) -> None:
     try:
-        with open(os.path.join(_STATISTICS_DIRECTORY_PATH, subpath), "w") as file:
+        with gzip.open(os.path.join(_STATISTICS_DIRECTORY_PATH, subpath+'.zip'), "w") as file:
             file.write(
                 json.dumps(statistics, indent=4)
             )

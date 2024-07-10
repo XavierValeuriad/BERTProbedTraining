@@ -4,7 +4,7 @@ from datasets import load_from_disk, concatenate_datasets
 from datasets.utils.logging import set_verbosity
 
 
-from transformers.utils.logging import set_verbosity, enable_default_handler, enable_explicit_format
+from transformers.utils.logging import enable_default_handler, enable_explicit_format
 from transformers.utils.logging import set_verbosity as transformer_set_verbosity
 from torch.distributed.elastic.multiprocessing.errors import record
 

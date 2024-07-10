@@ -137,8 +137,8 @@ def _save_json(subpath: str, statistics: dict) -> None:
 
 class CallbackForGradientStatistics(TrainerCallback):
 
-    def __init__(self, norm_type: float = 2.0):
-        super().__init__()
+    def __init__(self, args: TrainingArguments, norm_type: float = 2.0):
+        super().__init__(args=args)
         print(f'CallbackForGradientStatistics.__init__(...) : calling.')
         logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
@@ -810,7 +810,7 @@ def main():
 
     # optimizer = AdamW(model.parameters())
 
-    callback = CallbackForGradientStatistics()
+    callback = CallbackForGradientStatistics(training_args)
 
     # Initialize our Trainer
     trainer = Trainer(
@@ -828,7 +828,14 @@ def main():
         else None,
     )
 
+    callback.lr_scheduler = trainer.lr_scheduler
     callback.optimizer = trainer.optimizer
+    callback.state = trainer.state
+    callback.control = trainer.control
+    callback.tokenizer = tokenizer
+    callback.train_dataloader = trainer.get_train_dataloader()
+    callback.eval_dataloader = trainer.get_eval_dataloader()
+    callback.model = model
 
     # Training
     if training_args.do_train:

@@ -1,7 +1,7 @@
 module purge
 module load pytorch-gpu/py3/1.11.0
 
-python3.9 -m pip unsinstall datasets
+python3.9 -m pip uninstall datasets
 python3.9 -m pip install python3.9 -m pip unsinstall datasets==1.8.0
 
 python3.9 merge_tokenized_datasets.py \

@@ -36,7 +36,7 @@ srun -l python -u run_training.py \
     --save_steps=300 \
     --logging_steps=300 \
     --model_type='bert-base-uncased' \
-    --path_load_dataset="data/dataset" \
+    --path_load_dataset="data/tokenized_train_bert_complete_3" \
     --output_dir='model_output/' \
     --logging_dir='model_output/logs/' \
     --per_device_train_batch_size=32 \

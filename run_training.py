@@ -115,7 +115,10 @@ def _reduce_last_axis(x: Tensor) -> Tensor:
 
 
 _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
-_STATISTICS_DIRECTORY_PATH = 'statistics'
+_STATISTICS_DIRECTORY_PATH = os.path.join(
+    '/gpfsstore/rech/mwd/ulm84ox',
+    'statistics'
+)
 # create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
 
 
@@ -716,12 +719,12 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    # tokenized_datasets = load_from_disk(data_args.path_load_dataset)
-    tokenized_datasets = concatenate_datasets(
-        [
-            load_from_disk(f'data/tokenized_train_bert_{i}')['train'] for i in range(1, 25)
-        ]
-    )
+    tokenized_datasets = load_from_disk(data_args.path_load_dataset)
+    # tokenized_datasets = concatenate_datasets(
+    #     [
+    #         load_from_disk(f'data/tokenized_train_bert_{i}')['train'] for i in range(1, 25)
+    #     ]
+    # )
 
 
     tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast.hf')

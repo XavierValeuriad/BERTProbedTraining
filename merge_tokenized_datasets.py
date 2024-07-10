@@ -50,7 +50,7 @@ def main():
         full_dataset['validation'] = concatenate_datasets(
             [full_dataset['validation'], loaded_dataset['validation']]
         )
-        full_dataset.save_to_disk(f'data/tokenized_train_bert_{i}/24_complete')
+        full_dataset.save_to_disk(f'data/tokenized_train_bert_{i}_over_24_complete')
 
 
     print("End script")

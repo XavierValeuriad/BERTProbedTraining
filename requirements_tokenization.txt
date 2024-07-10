@@ -1,6 +1,6 @@
 datasets~=1.8.0
-transformers[torch]
-torch
+transformers[torch]>=4.12
+torch>=3.2.1
 tf-keras
 accelerate
 tensorflow

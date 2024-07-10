@@ -19,14 +19,14 @@ Fine-tuning the library models for masked language modeling (BERT, ALBERT, RoBER
 Here is the full list of checkpoints on the hub that can be fine-tuned by this script:
 https://huggingface.co/models?filter=fill-mask
 """
-
+import gzip
 # You can also adapt this script on your own masked language modeling task. Pointers for this are left as comments.
 
-import logging, math, os, sys
+import math, sys
+
 from datasets.utils import logging as dataset_logging
 from datasets import load_from_disk
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import field
 
 
 # import evaluate
@@ -36,9 +36,8 @@ from transformers import (
     AutoModelForMaskedLM,
     HfArgumentParser,
     Trainer,
-    TrainingArguments,
     is_torch_tpu_available,
-    set_seed, BertTokenizerFast, BertConfig,
+    set_seed, BertTokenizerFast, BertConfig, AdamW
 )
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils.versions import require_version
@@ -55,10 +54,7 @@ import json, logging, os
 import numpy as np
 from dataclasses import dataclass
 from datetime import datetime
-from socket import socket
 from typing import Optional, Any, Tuple, List, Union, Dict, Mapping
-
-import torch
 
 from transformers import TrainerCallback, TrainingArguments, TrainerState, TrainerControl, PreTrainedTokenizerBase
 from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
@@ -94,8 +90,6 @@ from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_
 import torch
 from torch import Tensor
 
-from utils import create_folder_if_not_exists
-
 MULTIPLIER = 6364136223846793005
 INCREMENT = 1
 MODULUS = 2**64
@@ -125,41 +119,46 @@ _STATISTICS_DIRECTORY_PATH = 'statistics'
 # create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
 
 
-def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
-    with open(os.path.join(_STATISTICS_DIRECTORY_PATH, subfolder_and_file), "w") as file:
-        file.write(
-            json.dumps(gradient_statistics, indent=4)
-        )
+def _save_json(subpath: str, statistics: dict) -> None:
+    try:
+        with gzip.open(os.path.join(_STATISTICS_DIRECTORY_PATH, subpath+'.zip'), "wb") as file:
+            file.write(
+                json.dumps(statistics, indent=4).encode('utf-8')
+            )
+        # print(f'Statistics saved: {statistics}.')
+    except Exception as e:
+        print(f'Exception raised while saving statistics: {e}.')
 
 
 class CallbackForGradientStatistics(TrainerCallback):
 
     def __init__(self, norm_type: float = 2.0):
+        super().__init__()
+        print(f'CallbackForGradientStatistics.__init__(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
 
     CURRENT_MODEL = None
-    STATISTICS_DIRECTORY_PATH = os.path.join(
-        _STATISTICS_DIRECTORY_PATH,
-        'gradient'
-    )
-    # create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    GRADIENT_STATISTICS_DIRECTORY_NAME = 'gradient'
+
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
     def on_substep_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        print(f'CallbackForGradientStatistics.on_substep_end : calling.')
+        try:
+            # model = kwargs["model"]
+            model = CallbackForGradientStatistics.CURRENT_MODEL
+            if model is None:
+                raise Exception('Please set the current model into the class variable StatisticalCallback.CURRENT_MODEL.')
 
-        # model = kwargs["model"]
-        model = CallbackForGradientStatistics.CURRENT_MODEL
-        if model is None:
-            raise Exception('Please set the current model into the class variable StatisticalCallback.CURRENT_MODEL.')
+            epoch = state.epoch
 
-        epoch = state.epoch
-        CallbackForGradientStatistics._CURRENT_EPOCH = epoch
+            CallbackForGradientStatistics._CURRENT_EPOCH = epoch
 
-        # Computing gradient statistics (per layer)
-        _index = 0
-        gradient_statistics = {
-            {
+            # Computing gradient statistics (per layer)
+            _index = 0
+            gradient_statistics = {
                 f'{parameter_name}#{++_index}':{
                     'norm': parameters.grad.data.norm(self.norm_type).item(),
                     'argmax': parameters.grad.data.argmax().item(),
@@ -170,13 +169,22 @@ class CallbackForGradientStatistics(TrainerCallback):
                 }
                 for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
             }
-        }
 
-        _SAVING_THREAD_POOL.submit(
-            _save_json,
-            os.path.join(CallbackForGradientStatistics.STATISTICS_DIRECTORY_PATH, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
-            gradient_statistics
-        )
+            # _save_json(
+            #     os.path.join(
+            #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+            #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+            #     ),
+            #     gradient_statistics
+            # )
+
+            _SAVING_THREAD_POOL.submit(
+                _save_json,
+                os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+                gradient_statistics
+            )
+        except Exception as e:
+            print(f'Exception raised while saving gradients: {e}.')
 
 
 @dataclass
@@ -217,6 +225,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     _ATOMIC_COUNTER = itertools.count()
 
     def __post_init__(self):
+        print(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
+        logging.info(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
         if self.mlm and self.tokenizer.mask_token is None:
             raise ValueError(
                 "This tokenizer does not have a mask token which is necessary for masked language modeling. "
@@ -331,17 +341,14 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             batch["labels"] = labels
         return batch
 
-    STATISTICS_DIRECTORY_PATH = os.path.join(
-        _STATISTICS_DIRECTORY_PATH,
-        'masking'
-    )
-    # create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    MASKING_STATISTICS_DIRECTORY_NAME = 'masking'
 
     def torch_mask_tokens(self, inputs: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
         """
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        import torch
+        print(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
+        logging.info(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
 
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
@@ -377,19 +384,38 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         random_token_ids = random_words
 
         _masking_data = {
-            'input_hash': hash_tensor(inputs),
-            'replaced_token_ids': replaced_token_ids,
-            'replaced_token_locations': replaced_token_locations,
-            'randomized_token_ids': randomized_token_ids,
-            'randomized_token_locations': randomized_token_locations,
-            'random_token_ids': random_token_ids
+            'input_hash': hash_tensor(inputs).item(),
+            'replaced_token_ids_size': list(replaced_token_ids.size()),
+            'replaced_token_ids': replaced_token_ids.tolist(),
+            'replaced_token_locations': replaced_token_locations.tolist(),
+            'randomized_token_ids_size': list(randomized_token_ids.size()),
+            'randomized_token_ids': randomized_token_ids.tolist(),
+            'randomized_token_locations_size': list(randomized_token_locations.size()),
+            'randomized_token_locations': randomized_token_locations.tolist(),
+            'random_token_ids_size': list(random_token_ids.size()),
+            'random_token_ids': random_token_ids.tolist()
         }
+
+        # _save_json(
+        #     os.path.join(StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+        #                  f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+        #     _masking_data
+        # )
+
+        #print(f'Saving masking data : {_masking_data}.')
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(StatisticalDataCollatorForLanguageModeling.STATISTICS_DIRECTORY_PATH, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(
+                StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+                f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(
+                    ' ', '_').replace(',', '_')
+            ),
             _masking_data
         )
+
+        #print(f'Saved masking data : {_masking_data}.')
+
 
         inputs[indices_random] = random_words[indices_random]
 
@@ -456,7 +482,6 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
 
         # The rest of the time (10% of the time) we keep the masked input tokens unchanged
         return inputs, labels
-
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 # check_min_version("4.23.0.dev0")
@@ -694,7 +719,7 @@ def main():
 
     tokenized_datasets = load_from_disk(data_args.path_load_dataset)
 
-    tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast.hf')
+    tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
 
     config = BertConfig.from_dict(
         {
@@ -778,6 +803,23 @@ def main():
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
+    # optimizer = AdamW(model.parameters())
+
+    callback = CallbackForGradientStatistics()
+
+    # metric = evaluate.load("./accuracy.py")
+    #
+    # def compute_metrics(eval_preds):
+    #     preds, labels = eval_preds
+    #     # preds have the same shape as the labels, after the argmax(-1) has been calculated
+    #     # by preprocess_logits_for_metrics
+    #     labels = labels.reshape(-1)
+    #     preds = preds.reshape(-1)
+    #     mask = labels != -100
+    #     labels = labels[mask]
+    #     preds = preds[mask]
+    #     return metric.compute(predictions=preds, references=labels)
+
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -786,12 +828,64 @@ def main():
         eval_dataset=eval_dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        optimizers=(AdamW(model.parameters(), lr=training_args.learning_rate, eps=training_args.adam_epsilon), None),
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[CallbackForGradientStatistics()],
+        callbacks=[callback],
+        # optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,
     )
+
+    _zero_grad = trainer.optimizer.zero_grad
+
+    def _custom_zero_grad():
+        print(f'_custom_zero_grad : calling.')
+        try:
+            CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
+
+            # Computing gradient statistics (per layer)
+            _index = 0
+            gradient_statistics = {
+                f'{parameter_name}#{++_index}': {
+                    'norm': parameters.grad.data.norm(2).item(),
+                    'argmax': parameters.grad.data.argmax().item(),
+                    'max': parameters.grad.data.max().item(),
+                    'argmin': parameters.grad.data.argmin().item(),
+                    'min': parameters.grad.data.min().item(),
+                    'histograms': torch.histogram(parameters.grad.data, bins=24)
+                }
+                for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
+            }
+
+            # _save_json(
+            #     os.path.join(
+            #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+            #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+            #     ),
+            #     gradient_statistics
+            # )
+
+            _SAVING_THREAD_POOL.submit(
+                _save_json,
+                os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+                             f'_counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+                gradient_statistics
+            )
+        except Exception as e:
+            print(f'Exception raised while saving gradients: {e}.')
+
+        return _zero_grad()
+
+    trainer.optimizer.zero_grad = _custom_zero_grad
+
+    callback.arg = trainer.args
+    callback.lr_scheduler = trainer.lr_scheduler
+    callback.optimizer = trainer.optimizer
+    callback.state = trainer.state
+    callback.control = trainer.control
+    callback.tokenizer = tokenizer
+    callback.model = model
 
     # Training
     if training_args.do_train:

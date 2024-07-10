@@ -12,7 +12,7 @@ export SLURM_LOCALID=-1
 # force crashing on nccl issues like hanging broadcast
 export NCCL_ASYNC_ERROR_HANDLING=1
 
-python3.10 -u run_training.py \
+python3.10 -u test_run_training.py \
     --num_train_epochs=1 \
     --save_steps=2 \
     --logging_steps=300 \

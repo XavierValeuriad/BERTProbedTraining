@@ -149,8 +149,8 @@ class CallbackForGradientStatistics(TrainerCallback):
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
-    def on_optimizer_step(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        print(f'CallbackForGradientStatistics.on_optimizer_step.')
+    def on_epoch_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        print(f'CallbackForGradientStatistics.on_epoch_begin.')
         try:
             # model = kwargs["model"]
             model = CallbackForGradientStatistics.CURRENT_MODEL
@@ -352,8 +352,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         """
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        print(f'CallbackForGradientStatistics.torch_mask_tokens(...) : calling.')
-        logging.info(f'CallbackForGradientStatistics.torch_mask_tokens(...) : calling.')
+        print(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
+        logging.info(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
 
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)

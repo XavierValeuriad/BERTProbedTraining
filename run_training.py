@@ -724,7 +724,7 @@ def main():
     )
 
 
-    tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+    tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast.hf')
 
     config = BertConfig.from_dict(
         {

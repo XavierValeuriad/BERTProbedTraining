@@ -25,7 +25,7 @@ import gzip
 import math, sys
 
 from datasets.utils import logging as dataset_logging
-from datasets import load_from_disk
+from datasets import load_from_disk, concatenate_datasets
 from dataclasses import field
 
 
@@ -716,8 +716,13 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
+    # tokenized_datasets = load_from_disk(data_args.path_load_dataset)
+    tokenized_datasets = concatenate_datasets(
+        [
+            load_from_disk(f'data/tokenized_train_bert_{i}') for i in range(1, 25)
+        ]
+    )
 
-    tokenized_datasets = load_from_disk(data_args.path_load_dataset)
 
     tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
 

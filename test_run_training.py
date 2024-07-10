@@ -23,6 +23,8 @@ import gzip
 # You can also adapt this script on your own masked language modeling task. Pointers for this are left as comments.
 
 import logging, math, os, sys
+
+import evaluate
 from datasets.utils import logging as dataset_logging
 from datasets import load_from_disk
 from dataclasses import dataclass, field
@@ -810,7 +812,20 @@ def main():
 
     # optimizer = AdamW(model.parameters())
 
-    callback = CallbackForGradientStatistics()
+    # callback = CallbackForGradientStatistics()
+
+    metric = evaluate.load("./accuracy.py")
+
+    def compute_metrics(eval_preds):
+        preds, labels = eval_preds
+        # preds have the same shape as the labels, after the argmax(-1) has been calculated
+        # by preprocess_logits_for_metrics
+        labels = labels.reshape(-1)
+        preds = preds.reshape(-1)
+        mask = labels != -100
+        labels = labels[mask]
+        preds = preds[mask]
+        return metric.compute(predictions=preds, references=labels)
 
     # Initialize our Trainer
     trainer = Trainer(
@@ -821,20 +836,62 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[callback],
+        # callbacks=[callback],
         # optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,
     )
 
-    callback.arg = trainer.args
-    callback.lr_scheduler = trainer.lr_scheduler
-    callback.optimizer = trainer.optimizer
-    callback.state = trainer.state
-    callback.control = trainer.control
-    callback.tokenizer = tokenizer
-    callback.model = model
+    _zero_grad = trainer.optimizer.zero_grad
+
+    def _custom_zero_grad():
+        print(f'CallbackForGradientStatistics.on_substep_end : calling.')
+        try:
+            CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
+
+            # Computing gradient statistics (per layer)
+            _index = 0
+            gradient_statistics = {
+                f'{parameter_name}#{++_index}': {
+                    'norm': parameters.grad.data.norm(2).item(),
+                    'argmax': parameters.grad.data.argmax().item(),
+                    'max': parameters.grad.data.max().item(),
+                    'argmin': parameters.grad.data.argmin().item(),
+                    'min': parameters.grad.data.min().item(),
+                    'histograms': torch.histogram(parameters.grad.data, bins=24)
+                }
+                for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
+            }
+
+            # _save_json(
+            #     os.path.join(
+            #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+            #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+            #     ),
+            #     gradient_statistics
+            # )
+
+            _SAVING_THREAD_POOL.submit(
+                _save_json,
+                os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+                             f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+                gradient_statistics
+            )
+        except Exception as e:
+            print(f'Exception raised while saving gradients: {e}.')
+
+        return _zero_grad()
+
+    trainer.optimizer.zero_grad = _custom_zero_grad
+
+    # callback.arg = trainer.args
+    # callback.lr_scheduler = trainer.lr_scheduler
+    # callback.optimizer = trainer.optimizer
+    # callback.state = trainer.state
+    # callback.control = trainer.control
+    # callback.tokenizer = tokenizer
+    # callback.model = model
 
     # Training
     if training_args.do_train:

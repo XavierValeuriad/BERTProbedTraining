@@ -32,8 +32,8 @@ export CUDA_LAUNCH_BLOCKING=1
 export NCCL_ASYNC_ERROR_HANDLING=1
 
 srun -l python -u run_training.py \
-    --num_train_epochs=1 \
-    --save_steps=2 \
+    --num_train_epochs=100 \
+    --save_steps=300 \
     --logging_steps=300 \
     --model_type='bert-base-uncased' \
     --path_load_dataset="data/dataset" \

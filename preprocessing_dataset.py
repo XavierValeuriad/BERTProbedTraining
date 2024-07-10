@@ -44,7 +44,7 @@ from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
 
-import torch.distributed as dist
+
 # import idr_torch #COMM
 
 

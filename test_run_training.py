@@ -812,7 +812,7 @@ def main():
 
     # optimizer = AdamW(model.parameters())
 
-    # callback = CallbackForGradientStatistics()
+    callback = CallbackForGradientStatistics()
 
     # metric = evaluate.load("./accuracy.py")
     #
@@ -837,7 +837,7 @@ def main():
         data_collator=data_collator,
         optimizers=(AdamW(model.parameters(), lr=training_args.learning_rate, eps=training_args.adam_epsilon), None),
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        # callbacks=[callback],
+        callbacks=[callback],
         # optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
@@ -847,7 +847,7 @@ def main():
     _zero_grad = trainer.optimizer.zero_grad
 
     def _custom_zero_grad():
-        print(f'CallbackForGradientStatistics.on_substep_end : calling.')
+        print(f'_custom_zero_grad : calling.')
         try:
             CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
 
@@ -876,7 +876,7 @@ def main():
             _SAVING_THREAD_POOL.submit(
                 _save_json,
                 os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
-                             f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+                             f'_counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
                 gradient_statistics
             )
         except Exception as e:
@@ -886,13 +886,13 @@ def main():
 
     trainer.optimizer.zero_grad = _custom_zero_grad
 
-    # callback.arg = trainer.args
-    # callback.lr_scheduler = trainer.lr_scheduler
-    # callback.optimizer = trainer.optimizer
-    # callback.state = trainer.state
-    # callback.control = trainer.control
-    # callback.tokenizer = tokenizer
-    # callback.model = model
+    callback.arg = trainer.args
+    callback.lr_scheduler = trainer.lr_scheduler
+    callback.optimizer = trainer.optimizer
+    callback.state = trainer.state
+    callback.control = trainer.control
+    callback.tokenizer = tokenizer
+    callback.model = model
 
     # Training
     if training_args.do_train:

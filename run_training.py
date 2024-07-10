@@ -388,7 +388,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(StatisticalDataCollatorForLanguageModeling.STATISTICS_DIRECTORY_PATH, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(StatisticalDataCollatorForLanguageModeling.STATISTICS_DIRECTORY_PATH, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
             _masking_data
         )
 

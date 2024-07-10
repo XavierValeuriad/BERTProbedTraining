@@ -123,7 +123,7 @@ _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 _STATISTICS_DIRECTORY_PATH = os.path.join(
     'statistics'
 )
-create_all_subfolders_if_not_exists(_STATISTICS_DIRECTORY_PATH)
+create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
 
 
 def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
@@ -143,7 +143,7 @@ class CallbackForGradientStatistics(TrainerCallback):
         _STATISTICS_DIRECTORY_PATH,
         'gradient'
     )
-    create_all_subfolders_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
@@ -336,7 +336,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         _STATISTICS_DIRECTORY_PATH,
         'masking'
     )
-    create_all_subfolders_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
 
     def torch_mask_tokens(self, inputs: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
         """

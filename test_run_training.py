@@ -385,7 +385,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         random_token_ids = random_words
 
         _masking_data = {
-            'input_hash': hash_tensor(inputs),
+            'input_hash': hash_tensor(inputs).item(),
             'replaced_token_ids_size': list(replaced_token_ids.size()),
             'replaced_token_ids': replaced_token_ids.tolist(),
             'replaced_token_locations': replaced_token_locations.tolist(),

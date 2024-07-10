@@ -130,14 +130,6 @@ def _save_json(subfolder_and_file: str, statistics: dict) -> None:
             json.dumps(statistics, indent=4)
         )
 
-
-def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
-    with open(os.path.join(_STATISTICS_DIRECTORY_PATH, subfolder_and_file), "w") as file:
-        file.write(
-            json.dumps(gradient_statistics, indent=4)
-        )
-
-
 class CallbackForGradientStatistics(TrainerCallback):
 
     def __init__(self, norm_type: float = 2.0):

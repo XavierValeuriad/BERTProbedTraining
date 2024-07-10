@@ -132,17 +132,23 @@ def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
         )
 
 
+def _save_json(subfolder_and_file: str, gradient_statistics: dict) -> None:
+    with open(os.path.join(_STATISTICS_DIRECTORY_PATH, subfolder_and_file), "w") as file:
+        file.write(
+            json.dumps(gradient_statistics, indent=4)
+        )
+
+
 class CallbackForGradientStatistics(TrainerCallback):
 
     def __init__(self, norm_type: float = 2.0):
+        print(f'CallbackForGradientStatistics.__init__(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
         self.norm_type = float(norm_type)
 
     CURRENT_MODEL = None
-    STATISTICS_DIRECTORY_PATH = os.path.join(
-        _STATISTICS_DIRECTORY_PATH,
-        'gradient'
-    )
-    # create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    GRADIENT_STATISTICS_DIRECTORY_NAME = 'gradient'
+
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
 
@@ -154,27 +160,35 @@ class CallbackForGradientStatistics(TrainerCallback):
             raise Exception('Please set the current model into the class variable StatisticalCallback.CURRENT_MODEL.')
 
         epoch = state.epoch
+        logging.info(f'CallbackForGradientStatistics.on_substep_end : {epoch}.')
+
         CallbackForGradientStatistics._CURRENT_EPOCH = epoch
 
         # Computing gradient statistics (per layer)
         _index = 0
         gradient_statistics = {
-            {
-                f'{parameter_name}#{++_index}':{
-                    'norm': parameters.grad.data.norm(self.norm_type).item(),
-                    'argmax': parameters.grad.data.argmax().item(),
-                    'max': parameters.grad.data.max().item(),
-                    'argmin': parameters.grad.data.argmin().item(),
-                    'min': parameters.grad.data.min().item(),
-                    'histograms': torch.histogram(parameters.grad.data, bins=24)
-                }
-                for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
+            f'{parameter_name}#{++_index}':{
+                'norm': parameters.grad.data.norm(self.norm_type).item(),
+                'argmax': parameters.grad.data.argmax().item(),
+                'max': parameters.grad.data.max().item(),
+                'argmin': parameters.grad.data.argmin().item(),
+                'min': parameters.grad.data.min().item(),
+                'histograms': torch.histogram(parameters.grad.data, bins=24)
             }
+            for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
         }
+
+        # _save_json(
+        #     os.path.join(
+        #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+        #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+        #     ),
+        #     gradient_statistics
+        # )
 
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(CallbackForGradientStatistics.STATISTICS_DIRECTORY_PATH, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
             gradient_statistics
         )
 
@@ -217,6 +231,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     _ATOMIC_COUNTER = itertools.count()
 
     def __post_init__(self):
+        print(f'CallbackForGradientStatistics.__post_init__(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.__post_init__(...) : calling.')
         if self.mlm and self.tokenizer.mask_token is None:
             raise ValueError(
                 "This tokenizer does not have a mask token which is necessary for masked language modeling. "
@@ -331,17 +347,14 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             batch["labels"] = labels
         return batch
 
-    STATISTICS_DIRECTORY_PATH = os.path.join(
-        _STATISTICS_DIRECTORY_PATH,
-        'masking'
-    )
-    # create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
+    MASKING_STATISTICS_DIRECTORY_NAME = 'masking'
 
     def torch_mask_tokens(self, inputs: Any, special_tokens_mask: Optional[Any] = None) -> Tuple[Any, Any]:
         """
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        import torch
+        print(f'CallbackForGradientStatistics.torch_mask_tokens(...) : calling.')
+        logging.info(f'CallbackForGradientStatistics.torch_mask_tokens(...) : calling.')
 
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
@@ -385,9 +398,18 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
             'random_token_ids': random_token_ids
         }
 
+        # _save_json(
+        #     os.path.join(StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+        #                  f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+        #     _masking_data
+        # )
+
         _SAVING_THREAD_POOL.submit(
             _save_json,
-            os.path.join(StatisticalDataCollatorForLanguageModeling.STATISTICS_DIRECTORY_PATH, f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+            os.path.join(
+                StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
+                f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+            ),
             _masking_data
         )
 
@@ -456,7 +478,6 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
 
         # The rest of the time (10% of the time) we keep the masked input tokens unchanged
         return inputs, labels
-
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 # check_min_version("4.23.0.dev0")

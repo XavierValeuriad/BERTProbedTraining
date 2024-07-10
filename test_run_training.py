@@ -808,7 +808,7 @@ def main():
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
-    optimizer = AdamW(model.parameters())
+    # optimizer = AdamW(model.parameters())
 
     # Initialize our Trainer
     trainer = Trainer(
@@ -820,7 +820,7 @@ def main():
         data_collator=data_collator,
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
         callbacks=[CallbackForGradientStatistics()],
-        optimizer=(optimizer, None),
+        # optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,

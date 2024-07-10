@@ -7,7 +7,7 @@ export OMP_NUM_THREADS=10
 
 export CUDA_LAUNCH_BLOCKING=1
 
-export SLURM_LOCALID=test
+export SLURM_LOCALID=-1
 
 # force crashing on nccl issues like hanging broadcast
 export NCCL_ASYNC_ERROR_HANDLING=1

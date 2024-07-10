@@ -126,9 +126,9 @@ _STATISTICS_DIRECTORY_PATH = 'statistics'
 
 def _save_json(subpath: str, statistics: dict) -> None:
     try:
-        with gzip.open(os.path.join(_STATISTICS_DIRECTORY_PATH, subpath+'.zip'), "w") as file:
+        with gzip.open(os.path.join(_STATISTICS_DIRECTORY_PATH, subpath+'.zip'), "wb") as file:
             file.write(
-                json.dumps(statistics, indent=4)
+                json.dumps(statistics, indent=4).encode('utf-8')
             )
         print(f'Statistics saved: {statistics}.')
     except Exception as e:

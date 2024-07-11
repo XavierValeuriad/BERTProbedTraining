@@ -823,7 +823,7 @@ def main():
             self.accelerator.backward(loss, **kwargs)
 
         # print(f'_custom_zero_grad : calling.')
-        if 0 >= trainer.state.epoch or trainer.state.global_step % training_args.save_steps == 0:
+        if 1.0 >= trainer.state.epoch or trainer.state.global_step % training_args.save_steps == 0:
             try:
                 CallbackForGradientStatistics._DOES_MAKE_STATS = True
                 CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch

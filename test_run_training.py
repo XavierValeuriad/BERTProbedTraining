@@ -48,7 +48,6 @@ from transformers import (
     set_seed, BertTokenizerFast, BertConfig
 )
 from transformers.trainer_utils import get_last_checkpoint
-from transformers.training_args import OptimizerNames
 from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -140,6 +139,10 @@ def _save_json(subpath: str, statistics: dict) -> None:
         # print(f'Statistics saved: {statistics}.')
     except Exception as e:
         print(f'Exception raised while saving statistics: {e}.')
+
+def _load_json(path: str) -> dict:
+    with gzip.open(path, "rb") as file:
+        return json.loads(file.read().decode('utf-8'))
 
 
 class CallbackForGradientStatistics(TrainerCallback):

@@ -152,6 +152,9 @@ class CallbackForGradientStatistics(TrainerCallback):
     _CURRENT_EPOCH = 0.0
 
 
+def _histo_to_list(histo) -> list:
+    return [_h.tolist() for _h in histo]
+
 @dataclass
 class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     """
@@ -190,8 +193,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     _ATOMIC_COUNTER = itertools.count()
 
     def __post_init__(self):
-        print(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
-        logging.info(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
+        # print(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
+        # logging.info(f'StatisticalDataCollatorForLanguageModeling.__post_init__(...) : calling.')
         if self.mlm and self.tokenizer.mask_token is None:
             raise ValueError(
                 "This tokenizer does not have a mask token which is necessary for masked language modeling. "
@@ -312,8 +315,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         """
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        print(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
-        logging.info(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
+        # print(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
+        # logging.info(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
 
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
@@ -820,7 +823,7 @@ def main():
         else:
             self.accelerator.backward(loss, **kwargs)
 
-        print(f'_custom_zero_grad : calling.')
+        # print(f'_custom_zero_grad : calling.')
         try:
             CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
 
@@ -833,7 +836,7 @@ def main():
                     'max': parameters.grad.data.max().item(),
                     'argmin': parameters.grad.data.argmin().item(),
                     'min': parameters.grad.data.min().item(),
-                    'histograms': torch.histogram(parameters.grad.data.clone().cpu().detach(), bins=24)
+                    'histograms': _histo_to_list(torch.histogram(parameters.grad.data.clone().cpu().detach(), bins=24))
                 }
                 for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
             }

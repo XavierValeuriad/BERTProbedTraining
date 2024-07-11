@@ -783,7 +783,7 @@ def main():
         else None,
     )
 
-    def custom_training_step(model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+    def custom_training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
         """
         Perform a training step on a batch of inputs.
 
@@ -853,7 +853,7 @@ def main():
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
-    trainer.training_step = types.MethodType(custom_training_step, trainer.training_step)
+    trainer.training_step = types.MethodType(custom_training_step, trainer)
 
 
     # Training

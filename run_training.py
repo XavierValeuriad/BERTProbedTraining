@@ -23,6 +23,7 @@ import gzip
 # You can also adapt this script on your own masked language modeling task. Pointers for this are left as comments.
 
 import math, sys
+import types
 
 from datasets.utils import logging as dataset_logging
 from datasets import load_from_disk
@@ -37,12 +38,10 @@ from transformers import (
     HfArgumentParser,
     Trainer,
     is_torch_tpu_available,
-    set_seed, BertTokenizerFast, BertConfig, AdamW
+    set_seed, BertTokenizerFast, BertConfig
 )
-from transformers.trainer_pt_utils import smp_forward_backward
+
 from transformers.trainer_utils import get_last_checkpoint
-from transformers.training_args import OptimizerNames
-from transformers.utils import is_sagemaker_mp_enabled
 from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -97,6 +96,8 @@ MULTIPLIER = 6364136223846793005
 INCREMENT = 1
 MODULUS = 2**64
 
+def _histo_to_list(histo) -> list:
+    return [_h.tolist() for _h in histo]
 
 def hash_tensor(x: Tensor) -> Tensor:
     assert x.dtype == torch.int64
@@ -848,9 +849,6 @@ def main():
         """
         model.train()
         inputs = self._prepare_inputs(inputs)
-        if is_sagemaker_mp_enabled():
-            loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
-            return loss_mb.reduce_mean().detach().to(self.args.device)
 
         with self.compute_loss_context_manager():
             loss = self.compute_loss(model, inputs)
@@ -858,10 +856,6 @@ def main():
         del inputs
 
         kwargs = {}
-
-        # For LOMO optimizers you need to explicitly use the learnign rate
-        if self.args.optim in [OptimizerNames.LOMO, OptimizerNames.ADALOMO]:
-            kwargs["learning_rate"] = self._get_learning_rate()
 
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
@@ -872,7 +866,7 @@ def main():
         else:
             self.accelerator.backward(loss, **kwargs)
 
-        print(f'_custom_zero_grad : calling.')
+        # print(f'_custom_zero_grad : calling.')
         try:
             CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
 
@@ -885,15 +879,17 @@ def main():
                     'max': parameters.grad.data.max().item(),
                     'argmin': parameters.grad.data.argmin().item(),
                     'min': parameters.grad.data.min().item(),
-                    'histograms': torch.histogram(parameters.grad.data, bins=24)
+                    'histograms': _histo_to_list(torch.histogram(parameters.grad.data.clone().cpu().detach(), bins=24))
                 }
                 for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
             }
 
             _SAVING_THREAD_POOL.submit(
                 _save_json,
-                os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
-                             f'_counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
+                os.path.join(
+                    CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
+                    f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+                ),
                 gradient_statistics
             )
         except Exception as e:
@@ -901,7 +897,9 @@ def main():
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
-    trainer.training_step = custom_training_step
+    trainer.training_step = types.MethodType(custom_training_step, trainer)
+
+
 
     # Training
     if training_args.do_train:

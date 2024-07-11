@@ -352,6 +352,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         random_token_ids = random_words
 
         _masking_data = {
+            'input.size()': list(inputs.size()),
+            'input': str(inputs),
             'input_hash': hash_tensor(inputs).item(),
             'replaced_token_ids_size': list(replaced_token_ids.size()),
             'replaced_token_ids': replaced_token_ids.tolist(),
@@ -831,6 +833,9 @@ def main():
             _index = 0
             gradient_statistics = {
                 f'{parameter_name}#{++_index}': {
+                    'tensor.size()': list(parameters.grad.data.size()),
+                    'tensor': str(parameters.grad.data),
+                    'gradient_size': list(parameters.grad.data.size()),
                     'norm': parameters.grad.data.norm(2).item(),
                     'argmax': parameters.grad.data.argmax().item(),
                     'max': parameters.grad.data.max().item(),

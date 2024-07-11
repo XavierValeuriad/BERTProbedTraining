@@ -679,7 +679,20 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    tokenized_datasets = load_from_disk(data_args.path_load_dataset)
+    tokenized_datasets = None
+    i = 24
+    while tokenized_datasets is None and i > 0:
+        try:
+            dataset_name = f'data/tokenized_train_bert_complete_{i}'
+            tokenized_datasets = load_from_disk(dataset_name)
+            print(f'dataset successfully loaded: {dataset_name}.')
+        except:
+            i -= 1
+
+    if tokenized_datasets is None:
+        raise Exception('Datafile not found.')
+
+
     # tokenized_datasets = concatenate_datasets(
     #     [
     #         load_from_disk(f'data/tokenized_train_bert_{i}')['train'] for i in range(1, 25)

@@ -853,7 +853,7 @@ def main():
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
-    trainer.training_step = types.MethodType(custom_training_step, training_step)
+    trainer.training_step = types.MethodType(custom_training_step, trainer.training_step)
 
 
     # Training

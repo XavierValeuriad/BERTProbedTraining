@@ -43,12 +43,10 @@ from transformers import (
     HfArgumentParser,
     Trainer,
     is_torch_tpu_available,
-    set_seed, BertTokenizerFast, BertConfig, AdamW
+    set_seed, BertTokenizerFast, BertConfig
 )
-from transformers.trainer_pt_utils import smp_forward_backward
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.training_args import OptimizerNames
-from transformers.utils import is_sagemaker_mp_enabled
 from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -65,7 +63,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Any, Tuple, List, Union, Dict, Mapping
 
-from transformers import TrainerCallback, TrainingArguments, TrainerState, TrainerControl, PreTrainedTokenizerBase
+from transformers import TrainerCallback, TrainingArguments, PreTrainedTokenizerBase
 from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
     _torch_collate_batch, _numpy_collate_batch
 
@@ -144,59 +142,12 @@ def _save_json(subpath: str, statistics: dict) -> None:
 
 class CallbackForGradientStatistics(TrainerCallback):
 
-    def __init__(self, norm_type: float = 2.0):
-        super().__init__()
-        print(f'CallbackForGradientStatistics.__init__(...) : calling.')
-        logging.info(f'CallbackForGradientStatistics.__init__(...) : calling.')
-        self.norm_type = float(norm_type)
 
     CURRENT_MODEL = None
     GRADIENT_STATISTICS_DIRECTORY_NAME = 'gradient'
 
     _ATOMIC_COUNTER = itertools.count()
     _CURRENT_EPOCH = 0.0
-
-    def on_substep_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        print(f'CallbackForGradientStatistics.on_substep_end : calling.')
-        try:
-            # model = kwargs["model"]
-            model = CallbackForGradientStatistics.CURRENT_MODEL
-            if model is None:
-                raise Exception('Please set the current model into the class variable StatisticalCallback.CURRENT_MODEL.')
-
-            epoch = state.epoch
-
-            CallbackForGradientStatistics._CURRENT_EPOCH = epoch
-
-            # Computing gradient statistics (per layer)
-            _index = 0
-            gradient_statistics = {
-                f'{parameter_name}#{++_index}':{
-                    'norm': parameters.grad.data.norm(self.norm_type).item(),
-                    'argmax': parameters.grad.data.argmax().item(),
-                    'max': parameters.grad.data.max().item(),
-                    'argmin': parameters.grad.data.argmin().item(),
-                    'min': parameters.grad.data.min().item(),
-                    'histograms': torch.histogram(parameters.grad.data, bins=24)
-                }
-                for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
-            }
-
-            # _save_json(
-            #     os.path.join(
-            #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
-            #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
-            #     ),
-            #     gradient_statistics
-            # )
-
-            _SAVING_THREAD_POOL.submit(
-                _save_json,
-                os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME, f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'),
-                gradient_statistics
-            )
-        except Exception as e:
-            print(f'Exception raised while saving gradients: {e}.')
 
 
 @dataclass
@@ -850,9 +801,6 @@ def main():
         """
         model.train()
         inputs = self._prepare_inputs(inputs)
-        if is_sagemaker_mp_enabled():
-            loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
-            return loss_mb.reduce_mean().detach().to(self.args.device)
 
         with self.compute_loss_context_manager():
             loss = self.compute_loss(model, inputs)

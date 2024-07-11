@@ -371,8 +371,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
                 _save_json,
                 os.path.join(
                     StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
-                    f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}@callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}@epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(
-                        ' ', '_').replace(',', '_')
+                    f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}#callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}#epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}#device_{torch.cuda.current_device()}#time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
                 ),
                 _masking_data
             )
@@ -847,7 +846,7 @@ def main():
                     _save_json,
                     os.path.join(
                         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
-                        f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{trainer.state.epoch}@device_{torch.cuda.current_device()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
+                        f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}#collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}#epoch_{trainer.state.epoch}#device_{torch.cuda.current_device()}#time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
                     ),
                     gradient_statistics
                 )

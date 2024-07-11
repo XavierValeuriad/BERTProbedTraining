@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mlm_bert_stats     # nom du job
-#SBATCH -C v100
-#SBATCH -A mwd@v100-32g
+#SBATCH -C v100-32g
+#SBATCH -A mwd@v100
 #SBATCH --ntasks=2                   # nombre total de tache MPI (= nombre total de GPU)
 #SBATCH --gres=gpu:2                 # nombre de GPU par nœud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
 #SBATCH --cpus-per-task=10           # nombre de CPU par tache (un quart du noeud ici)

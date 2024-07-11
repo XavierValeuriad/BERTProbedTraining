@@ -25,7 +25,7 @@ import gzip
 import math, sys
 
 from datasets.utils import logging as dataset_logging
-from datasets import load_from_disk, concatenate_datasets
+from datasets import load_from_disk
 from dataclasses import field
 
 
@@ -39,7 +39,10 @@ from transformers import (
     is_torch_tpu_available,
     set_seed, BertTokenizerFast, BertConfig, AdamW
 )
+from transformers.trainer_pt_utils import smp_forward_backward
 from transformers.trainer_utils import get_last_checkpoint
+from transformers.training_args import OptimizerNames
+from transformers.utils import is_sagemaker_mp_enabled
 from transformers.utils.versions import require_version
 
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -88,7 +91,7 @@ from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_
 
 
 import torch
-from torch import Tensor
+from torch import Tensor, amp, nn
 
 MULTIPLIER = 6364136223846793005
 INCREMENT = 1
@@ -350,8 +353,8 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         """
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
-        print(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
-        logging.info(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
+        # print(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
+        # logging.info(f'StatisticalDataCollatorForLanguageModeling.torch_mask_tokens(...) : calling.')
 
         labels = inputs.clone()
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
@@ -811,23 +814,6 @@ def main():
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
-    # optimizer = AdamW(model.parameters())
-
-    callback = CallbackForGradientStatistics()
-
-    # metric = evaluate.load("./accuracy.py")
-    #
-    # def compute_metrics(eval_preds):
-    #     preds, labels = eval_preds
-    #     # preds have the same shape as the labels, after the argmax(-1) has been calculated
-    #     # by preprocess_logits_for_metrics
-    #     labels = labels.reshape(-1)
-    #     preds = preds.reshape(-1)
-    #     mask = labels != -100
-    #     labels = labels[mask]
-    #     preds = preds[mask]
-    #     return metric.compute(predictions=preds, references=labels)
-
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -836,18 +822,56 @@ def main():
         eval_dataset=eval_dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
-        optimizers=(AdamW(model.parameters(), lr=training_args.learning_rate, eps=training_args.adam_epsilon), None),
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        callbacks=[callback],
-        # optimizer=(optimizer, None),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()
         else None,
     )
 
-    _zero_grad = trainer.optimizer.zero_grad
+    def custom_training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+        """
+        Perform a training step on a batch of inputs.
 
-    def _custom_zero_grad():
+        Subclass and override to inject custom behavior.
+
+        Args:
+            model (`nn.Module`):
+                The model to train.
+            inputs (`Dict[str, Union[torch.Tensor, Any]]`):
+                The inputs and targets of the model.
+
+                The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
+                argument `labels`. Check your model's documentation for all accepted arguments.
+
+        Return:
+            `torch.Tensor`: The tensor with training loss on this batch.
+        """
+        model.train()
+        inputs = self._prepare_inputs(inputs)
+        if is_sagemaker_mp_enabled():
+            loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
+            return loss_mb.reduce_mean().detach().to(self.args.device)
+
+        with self.compute_loss_context_manager():
+            loss = self.compute_loss(model, inputs)
+
+        del inputs
+
+        kwargs = {}
+
+        # For LOMO optimizers you need to explicitly use the learnign rate
+        if self.args.optim in [OptimizerNames.LOMO, OptimizerNames.ADALOMO]:
+            kwargs["learning_rate"] = self._get_learning_rate()
+
+        if self.args.n_gpu > 1:
+            loss = loss.mean()  # mean() to average on multi-gpu parallel training
+
+        if self.use_apex:
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            self.accelerator.backward(loss, **kwargs)
+
         print(f'_custom_zero_grad : calling.')
         try:
             CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
@@ -866,14 +890,6 @@ def main():
                 for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
             }
 
-            # _save_json(
-            #     os.path.join(
-            #         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
-            #         f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}@collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}@epoch_{epoch}@device_{torch.cuda.current_device()}@hostname_{socket.gethostname()}@time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'
-            #     ),
-            #     gradient_statistics
-            # )
-
             _SAVING_THREAD_POOL.submit(
                 _save_json,
                 os.path.join(CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
@@ -883,17 +899,9 @@ def main():
         except Exception as e:
             print(f'Exception raised while saving gradients: {e}.')
 
-        return _zero_grad()
+        return loss.detach() / self.args.gradient_accumulation_steps
 
-    trainer.optimizer.zero_grad = _custom_zero_grad
-
-    callback.arg = trainer.args
-    callback.lr_scheduler = trainer.lr_scheduler
-    callback.optimizer = trainer.optimizer
-    callback.state = trainer.state
-    callback.control = trainer.control
-    callback.tokenizer = tokenizer
-    callback.model = model
+    trainer.training_step = custom_training_step
 
     # Training
     if training_args.do_train:

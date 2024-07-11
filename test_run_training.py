@@ -19,6 +19,8 @@ Fine-tuning the library models for masked language modeling (BERT, ALBERT, RoBER
 Here is the full list of checkpoints on the hub that can be fine-tuned by this script:
 https://huggingface.co/models?filter=fill-mask
 """
+import types
+
 """
 Fine-tuning the library models for masked language modeling (BERT, ALBERT, RoBERTa...) on a text file or a dataset.
 
@@ -851,7 +853,7 @@ def main():
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
-    trainer.training_step = custom_training_step
+    trainer.training_step = types.MethodType(custom_training_step, training_step)
 
 
     # Training

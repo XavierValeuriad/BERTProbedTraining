@@ -846,7 +846,7 @@ def main():
                     _save_json,
                     os.path.join(
                         CallbackForGradientStatistics.GRADIENT_STATISTICS_DIRECTORY_NAME,
-                        f'{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}#col_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}#epoch_{trainer.state.epoch}#step_{trainer.state}#device_{torch.cuda.current_device()}#time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
+                        f'counter_{next(CallbackForGradientStatistics._ATOMIC_COUNTER)}#collarcounter_{StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER}#epoch_{trainer.state.epoch}#step_{trainer.state.global_step}#device_{torch.cuda.current_device()}#time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
                     ),
                     gradient_statistics
                 )

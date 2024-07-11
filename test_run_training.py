@@ -833,7 +833,7 @@ def main():
                     'max': parameters.grad.data.max().item(),
                     'argmin': parameters.grad.data.argmin().item(),
                     'min': parameters.grad.data.min().item(),
-                    'histograms': torch.histogram(parameters.grad.data, bins=24)
+                    'histograms': torch.histogram(parameters.grad.data.clone().cpu().detach(), bins=24)
                 }
                 for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
             }

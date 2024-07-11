@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:2                 # nombre de GPU par nœud (max 8 avec gpu_p2, gpu_p4, gpu_p5)
 #SBATCH --cpus-per-task=10           # nombre de CPU par tache (un quart du noeud ici)
 #SBATCH --hint=nomultithread         # hyperthreading desactive
-#SBATCH --time=00:20:00              # temps d'execution maximum demande (HH:MM:SS)
+#SBATCH --time=00:5:00              # temps d'execution maximum demande (HH:MM:SS)
 #SBATCH --output=./logs/mlm_test%j.out # nom du fichier de sortie
 #SBATCH --error=./logs/mlm_test%j.out  # nom du fichier d'erreur (ici commun avec la sortie)
 #SBATCH -A mwd@v100
@@ -37,8 +37,8 @@ srun -l python -u run_training.py \
     --logging_steps=300 \
     --model_type='bert-base-uncased' \
     --path_load_dataset="data/tokenized_train_bert_complete_3" \
-    --output_dir='model_output/' \
-    --logging_dir='model_output/logs/' \
+    --output_dir='gpfsstore/rech/mwd/ulm84ox/model_output/' \
+    --logging_dir='gpfsstore/rech/mwd/ulm84ox/model_output/logs/' \
     --per_device_train_batch_size=32 \
     --do_train \
     --warmup_steps=10000 \

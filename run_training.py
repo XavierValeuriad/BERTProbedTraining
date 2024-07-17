@@ -692,7 +692,6 @@ def main():
     if tokenized_datasets is None:
         raise Exception('Datafile not found.')
 
-
     # tokenized_datasets = concatenate_datasets(
     #     [
     #         load_from_disk(f'data/tokenized_train_bert_{i}')['train'] for i in range(1, 25)

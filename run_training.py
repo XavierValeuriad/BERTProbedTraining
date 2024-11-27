@@ -154,6 +154,50 @@ class CallbackForGradientStatistics(TrainerCallback):
     _DOES_MAKE_STATS = True
 
 
+
+from transformers import TrainerCallback
+
+
+# Define custom to log both traning and evaluation loss as we
+class LoggingCallback(TrainerCallback):
+
+    def __init__(self):
+        self.training_losses = []
+        self.evaluation_losses = []
+        self.steps = []
+
+    def on_step_end(self, args, state, control, **kwargs):
+        # print(f'args : {args}')
+        # print(f'state : {state}')
+        # print(f'control : {control}')
+        # print(f'kwargs : {kwargs}')
+        # print(f'callback : {loss}')
+        if state.log_history:
+            self.training_losses.append(state.log_history[-2]['loss'])
+            self.evaluation_losses.append(state.log_history[-1]['eval_loss'])
+            self.steps.append(state.log_history[-1]['step'])
+
+
+# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
+# Define custom callback to implement early stopping
+class EarlyStoppingCallback(TrainerCallback):
+
+    def __init__(self, early_stopping_patience):
+        self.early_stopping_patience = early_stopping_patience
+        self.early_stopping_counter = 0
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if state.log_history:
+            training_loss = state.log_history[-2]['loss']
+            eval_loss = state.log_history[-1]['eval_loss']
+            if eval_loss < training_loss:
+                self.early_stopping_counter = 0
+            else:
+                self.early_stopping_counter += 1
+                if self.early_stopping_counter >= self.early_stopping_patience:
+                    control.should_training_stop = True
+
+
 @dataclass
 class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
     """
@@ -596,11 +640,11 @@ class ModelArguments:
         #         "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
         #     )
 
-
-
-
+NUMBER_OF_GPUS = 8
 @record
 def main():
+
+    global NUMBER_OF_GPUS
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
@@ -622,6 +666,103 @@ def main():
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+    training_args = TrainingArguments(
+        output_dir='model_output/',  # directory to save and repository id
+        overwrite_output_dir=True,
+
+        log_level="info",
+        logging_steps=300,  # log every n steps
+        logging_dir='model_output/logs/',
+        logging_first_step=True,
+        logging_nan_inf_filter=True,
+
+        num_train_epochs=100,  # number of training epochs
+        max_steps=100,  # 300 on a de bon résultats 8.09 , 400 est mieux, 800 = 8.58, 900 = 8.2
+
+        per_device_train_batch_size=BATCH_SIZE,  # batch size per device during training (c'etait 4)
+        per_device_eval_batch_size=BATCH_SIZE,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        auto_find_batch_size=False,
+
+        # number of steps before performing a backward/update pass
+        gradient_checkpointing=False,  # use gradient checkpointing to save memory
+        optim="adamw_torch_fused",  # use fused adamw optimizer
+
+        do_train=True,
+        do_eval=True,
+
+        full_determinism=True,
+        #seed=42,
+        #data_seed=42,
+
+        # save_strategy="steps",                  # save checkpoint every epoch
+        # save_strategy="no",                  # save checkpoint every epoche
+        learning_rate=2e-4,  # learning rate, based on QLoRA paper
+        weight_decay=0,
+        adam_beta1=0.9,
+        adam_beta2=0.999,
+        adam_epsilon=1e-8,
+        max_grad_norm=0.3, #0.3,  # max gradient norm based on QLoRA paper
+        warmup_ratio=0.,  # 0.03,  # warmup ratio based on QLoRA paper
+        lr_scheduler_type="constant",  # use constant learning rate scheduler
+
+        bf16=True,  # use bfloat16 precision
+        tf32=True,  # use tf32 precision
+
+        bf16_full_eval=False,
+        fp16_full_eval=False,
+
+
+        eval_on_start=True,
+        eval_strategy="steps",
+        eval_steps=1,
+
+        dataloader_drop_last=True,
+        dataloader_num_workers=NUMBER_OF_GPUS * 4,
+        dataloader_persistent_workers=True,
+        dataloader_prefetch_factor=2,
+
+        metric_for_best_model="eval_loss",
+        load_best_model_at_end=True,
+        greater_is_better=False,
+
+        disable_tqdm=False,
+
+        include_tokens_per_second=True,
+        include_num_input_tokens_seen=True,
+        skip_memory_metrics=False,
+
+        neftune_noise_alpha=False
+        # save_total_limit=1,
+        # save_steps=30,                    #30 à 60 steps
+        # push_to_hub=True,                       # push model to hub
+        # report_to="tensorboard",                # report metrics to tensorboard
+    )
+    --num_train_epochs=100 \
+    --save_steps=300 \
+    --logging_steps=300 \
+    --model_type='bert-base-uncased' \
+    --path_load_dataset="data/tokenized_train_bert_complete_3" \
+    --output_dir='model_output/' \
+    --logging_dir='model_output/logs/' \
+    --per_device_train_batch_size=32 \
+    --do_train \
+    --warmup_steps=10000 \
+    --overwrite_output_dir \
+    --max_seq_length=512 \
+    --report_to='tensorboard' \
+    --save_strategy='steps' \
+    --skip_memory_metrics='False' \
+    --log_level='info' \
+    --seed=42 \
+    --data_seed=42 \
+    --logging_first_step='True' \
+    --fp16 \
+    --ddp_timeout=600 \
+    --ddp_find_unused_parameters='False' \
+    training_args = TrainingArguments(
+
+    )
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
     # send_example_telemetry("run_mlm", model_args, data_args)
@@ -783,6 +924,9 @@ def main():
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
+    logging_callback = LoggingCallback()
+    earlystopping_callback = EarlyStoppingCallback(10)
+
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -791,6 +935,7 @@ def main():
         eval_dataset=eval_dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        callbacks=[logging_callback, earlystopping_callback],
         compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
         preprocess_logits_for_metrics=preprocess_logits_for_metrics
         if training_args.do_eval and not is_torch_tpu_available()

@@ -49,18 +49,15 @@ from torch.distributed.elastic.multiprocessing.errors import record
 import torch.distributed as dist
 import idr_torch
 
-
-import concurrent.futures
 import itertools
-import json, logging, os
+import logging, os
 import numpy as np
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Any, Tuple, List, Union, Dict, Mapping, Callable, Iterable
+from typing import Optional, Any, Tuple, List, Union, Dict, Mapping, Callable
 
-from transformers import TrainerCallback, TrainingArguments, TrainerState, TrainerControl, PreTrainedTokenizerBase
-from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
-    _torch_collate_batch, _numpy_collate_batch
+from transformers import TrainerCallback, TrainingArguments, PreTrainedTokenizerBase
+from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, _torch_collate_batch, _numpy_collate_batch
 
 # def create_folder_if_not_exists(folder_path: str):
 #     if not os.path.exists(folder_path):
@@ -90,7 +87,7 @@ from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_
 
 
 import torch
-from torch import Tensor, amp, nn
+from torch import amp, nn
 
 
 class CallbackForGradientStatistics(TrainerCallback):

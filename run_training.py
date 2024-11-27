@@ -500,145 +500,145 @@ MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
 
-@dataclass
-class DataTrainingArguments:
-    """
-    Arguments pertaining to what data we are going to input our model for training and eval.
-    """
-
-    # dataset_name: Optional[str] = field(
-    #     default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
-    # )
-    path_load_dataset: Optional[str] = field(
-        default=None, metadata={"help": "The path to load the tokenized dataset."}
-    )
-    # dataset_config_name: Optional[str] = field(
-    #     default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
-    # )
-    overwrite_cache: bool = field(
-        default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
-    )
-    validation_split_percentage: Optional[int] = field(
-        default=5,
-        metadata={
-            "help": "The percentage of the train set used as validation set in case there's no validation split"
-        },
-    )
-    max_seq_length: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "The maximum total input sequence length after tokenization. Sequences longer "
-                "than this will be truncated."
-            )
-        },
-    )
-    preprocessing_num_workers: Optional[int] = field(
-        default=None,
-        metadata={"help": "The number of processes to use for the preprocessing."},
-    )
-    mlm_probability: float = field(
-        default=0.15, metadata={"help": "Ratio of tokens to mask for masked language modeling loss"}
-    )
-    line_by_line: bool = field(
-        default=False,
-        metadata={"help": "Whether distinct lines of text in the dataset are to be handled as distinct sequences."},
-    )
-    pad_to_max_length: bool = field(
-        default=False,
-        metadata={
-            "help": (
-                "Whether to pad all samples to `max_seq_length`. "
-                "If False, will pad the samples dynamically when batching to the maximum length in the batch."
-            )
-        },
-    )
-    max_train_samples: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "For debugging purposes or quicker training, truncate the number of training examples to this "
-                "value if set."
-            )
-        },
-    )
-    max_eval_samples: Optional[int] = field(
-        default=None,
-        metadata={
-            "help": (
-                "For debugging purposes or quicker training, truncate the number of evaluation examples to this "
-                "value if set."
-            )
-        },
-    )
-
-    def __post_init__(self):
-        if self.path_load_dataset is None:
-            raise ValueError("Need path to load the tokenized dataset (path_load_dataset).")
-
-
-@dataclass
-class ModelArguments:
-    """
-    Arguments pertaining to which model/config/tokenizer we are going to fine-tune, or train from scratch.
-    """
-
-    # model_name_or_path: Optional[str] = field(
-    #     default=None,
-    #     metadata={
-    #         "help": (
-    #             "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
-    #         )
-    #     },
-    # )
-    model_type: Optional[str] = field(
-        default=None,
-        metadata={"help": "If training from scratch, pass a model type from the list: " + ", ".join(MODEL_TYPES)},
-    )
-    # config_overrides: Optional[str] = field(
-    #     default=None,
-    #     metadata={
-    #         "help": (
-    #             "Override some existing default config settings when a model is trained from scratch. Example: "
-    #             "n_embd=10,resid_pdrop=0.2,scale_attn_weights=false,summary_type=cls_index"
-    #         )
-    #     },
-    # )
-    # config_name: Optional[str] = field(
-    #     default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
-    # )
-    # tokenizer_name: Optional[str] = field(
-    #     default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
-    # )
-    cache_dir: Optional[str] = field(
-        default=None,
-        metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
-    )
-    # use_fast_tokenizer: bool = field(
-    #     default=True,
-    #     metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
-    # )
-    # model_revision: str = field(
-    #     default="main",
-    #     metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
-    # )
-    # use_auth_token: bool = field(
-    #     default=False,
-    #     metadata={
-    #         "help": (
-    #             "Will use the token generated when running `huggingface-cli login` (necessary to use this script "
-    #             "with private models)."
-    #         )
-    #     },
-    # )
-    #
-    def __post_init__(self):
-        if self.model_type is None:
-            raise ValueError('Please provide a model_type argument.')
-        # if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
-        #     raise ValueError(
-        #         "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
-        #     )
+# @dataclass
+# class DataTrainingArguments:
+#     """
+#     Arguments pertaining to what data we are going to input our model for training and eval.
+#     """
+#
+#     # dataset_name: Optional[str] = field(
+#     #     default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+#     # )
+#     path_load_dataset: Optional[str] = field(
+#         default=None, metadata={"help": "The path to load the tokenized dataset."}
+#     )
+#     # dataset_config_name: Optional[str] = field(
+#     #     default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+#     # )
+#     overwrite_cache: bool = field(
+#         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+#     )
+#     validation_split_percentage: Optional[int] = field(
+#         default=5,
+#         metadata={
+#             "help": "The percentage of the train set used as validation set in case there's no validation split"
+#         },
+#     )
+#     max_seq_length: Optional[int] = field(
+#         default=None,
+#         metadata={
+#             "help": (
+#                 "The maximum total input sequence length after tokenization. Sequences longer "
+#                 "than this will be truncated."
+#             )
+#         },
+#     )
+#     preprocessing_num_workers: Optional[int] = field(
+#         default=None,
+#         metadata={"help": "The number of processes to use for the preprocessing."},
+#     )
+#     mlm_probability: float = field(
+#         default=0.15, metadata={"help": "Ratio of tokens to mask for masked language modeling loss"}
+#     )
+#     line_by_line: bool = field(
+#         default=False,
+#         metadata={"help": "Whether distinct lines of text in the dataset are to be handled as distinct sequences."},
+#     )
+#     pad_to_max_length: bool = field(
+#         default=False,
+#         metadata={
+#             "help": (
+#                 "Whether to pad all samples to `max_seq_length`. "
+#                 "If False, will pad the samples dynamically when batching to the maximum length in the batch."
+#             )
+#         },
+#     )
+#     max_train_samples: Optional[int] = field(
+#         default=None,
+#         metadata={
+#             "help": (
+#                 "For debugging purposes or quicker training, truncate the number of training examples to this "
+#                 "value if set."
+#             )
+#         },
+#     )
+#     max_eval_samples: Optional[int] = field(
+#         default=None,
+#         metadata={
+#             "help": (
+#                 "For debugging purposes or quicker training, truncate the number of evaluation examples to this "
+#                 "value if set."
+#             )
+#         },
+#     )
+#
+#     def __post_init__(self):
+#         if self.path_load_dataset is None:
+#             raise ValueError("Need path to load the tokenized dataset (path_load_dataset).")
+#
+#
+# @dataclass
+# class ModelArguments:
+#     """
+#     Arguments pertaining to which model/config/tokenizer we are going to fine-tune, or train from scratch.
+#     """
+#
+#     # model_name_or_path: Optional[str] = field(
+#     #     default=None,
+#     #     metadata={
+#     #         "help": (
+#     #             "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
+#     #         )
+#     #     },
+#     # )
+#     model_type: Optional[str] = field(
+#         default=None,
+#         metadata={"help": "If training from scratch, pass a model type from the list: " + ", ".join(MODEL_TYPES)},
+#     )
+#     # config_overrides: Optional[str] = field(
+#     #     default=None,
+#     #     metadata={
+#     #         "help": (
+#     #             "Override some existing default config settings when a model is trained from scratch. Example: "
+#     #             "n_embd=10,resid_pdrop=0.2,scale_attn_weights=false,summary_type=cls_index"
+#     #         )
+#     #     },
+#     # )
+#     # config_name: Optional[str] = field(
+#     #     default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+#     # )
+#     # tokenizer_name: Optional[str] = field(
+#     #     default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+#     # )
+#     cache_dir: Optional[str] = field(
+#         default=None,
+#         metadata={"help": "Where do you want to store the pretrained models downloaded from huggingface.co"},
+#     )
+#     # use_fast_tokenizer: bool = field(
+#     #     default=True,
+#     #     metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
+#     # )
+#     # model_revision: str = field(
+#     #     default="main",
+#     #     metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
+#     # )
+#     # use_auth_token: bool = field(
+#     #     default=False,
+#     #     metadata={
+#     #         "help": (
+#     #             "Will use the token generated when running `huggingface-cli login` (necessary to use this script "
+#     #             "with private models)."
+#     #         )
+#     #     },
+#     # )
+#     #
+#     def __post_init__(self):
+#         if self.model_type is None:
+#             raise ValueError('Please provide a model_type argument.')
+#         # if self.config_overrides is not None and (self.config_name is not None or self.model_name_or_path is not None):
+#         #     raise ValueError(
+#         #         "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
+#         #     )
 
 NUMBER_OF_GPUS = 8
 @record
@@ -658,13 +658,19 @@ def main():
         rank=idr_torch.rank
     )
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
-    if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        # If we pass only one argument to the script and it's the path to a json file,
-        # let's parse it to get our arguments.
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
-    else:
-        model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    # parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
+    # if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
+    #     # If we pass only one argument to the script and it's the path to a json file,
+    #     # let's parse it to get our arguments.
+    #     model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    # else:
+    #     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
+    max_train_samples = None
+    max_eval_samples = None
+    line_by_line = False
+    pad_to_max_length = False
+    gradient_batch_size = 40
 
     training_args = TrainingArguments(
         output_dir='model_output/',  # directory to save and repository id
@@ -688,6 +694,8 @@ def main():
         gradient_checkpointing=False,  # use gradient checkpointing to save memory
         optim="adamw_torch_fused",  # use fused adamw optimizer
 
+        warmup_steps=None,
+
         do_train=True,
         do_eval=True,
 
@@ -695,8 +703,6 @@ def main():
         #seed=42,
         #data_seed=42,
 
-        # save_strategy="steps",                  # save checkpoint every epoch
-        # save_strategy="no",                  # save checkpoint every epoche
         learning_rate=2e-4,  # learning rate, based on QLoRA paper
         weight_decay=0,
         adam_beta1=0.9,
@@ -711,7 +717,6 @@ def main():
 
         bf16_full_eval=False,
         fp16_full_eval=False,
-
 
         eval_on_start=True,
         eval_strategy="steps",
@@ -732,37 +737,18 @@ def main():
         include_num_input_tokens_seen=True,
         skip_memory_metrics=False,
 
-        neftune_noise_alpha=False
-        # save_total_limit=1,
-        # save_steps=30,                    #30 à 60 steps
-        # push_to_hub=True,                       # push model to hub
+        neftune_noise_alpha=False,
+
+        save_strategy="steps",  # save checkpoint every epoch
+        save_steps=30,  # 30 à 60 steps
+        save_total_limit=1,
+
+        push_to_hub=False,                       # push model to hub
+        ddp_timeout=600,
+        ddp_find_unused_parameters=False
         # report_to="tensorboard",                # report metrics to tensorboard
     )
-    --num_train_epochs=100 \
-    --save_steps=300 \
-    --logging_steps=300 \
-    --model_type='bert-base-uncased' \
-    --path_load_dataset="data/tokenized_train_bert_complete_3" \
-    --output_dir='model_output/' \
-    --logging_dir='model_output/logs/' \
-    --per_device_train_batch_size=32 \
-    --do_train \
-    --warmup_steps=10000 \
-    --overwrite_output_dir \
-    --max_seq_length=512 \
-    --report_to='tensorboard' \
-    --save_strategy='steps' \
-    --skip_memory_metrics='False' \
-    --log_level='info' \
-    --seed=42 \
-    --data_seed=42 \
-    --logging_first_step='True' \
-    --fp16 \
-    --ddp_timeout=600 \
-    --ddp_find_unused_parameters='False' \
-    training_args = TrainingArguments(
 
-    )
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
     # send_example_telemetry("run_mlm", model_args, data_args)
@@ -858,7 +844,7 @@ def main():
             "intermediate_size": 3072,
             "layer_norm_eps": 1e-12,
             "max_position_embeddings": 512,
-            "model_type": "bert",
+            "model_type": "bert-base-uncased",
             "num_attention_heads": 12,
             "num_hidden_layers": 12,
             "pad_token_id": 0,
@@ -879,21 +865,21 @@ def main():
 
     model.resize_token_embeddings(len(tokenizer))
 
-    if training_args.do_train:
-        if "train" not in tokenized_datasets:
-            raise ValueError("--do_train requires a train dataset")
-        train_dataset = tokenized_datasets["train"]
-        if data_args.max_train_samples is not None:
-            max_train_samples = min(len(train_dataset), data_args.max_train_samples)
-            train_dataset = train_dataset.select(range(max_train_samples))
+    #if training_args.do_train:
+    if "train" not in tokenized_datasets:
+        raise ValueError("--do_train requires a train dataset")
+    train_dataset = tokenized_datasets["train"]
+    if max_train_samples is not None:
+        max_train_samples = min(len(train_dataset), max_train_samples)
+        train_dataset = train_dataset.select(range(max_train_samples))
 
-    if training_args.do_eval:
-        if "validation" not in tokenized_datasets:
-            raise ValueError("--do_eval requires a validation dataset")
-        eval_dataset = tokenized_datasets["validation"]
-        if data_args.max_eval_samples is not None:
-            max_eval_samples = min(len(eval_dataset), data_args.max_eval_samples)
-            eval_dataset = eval_dataset.select(range(max_eval_samples))
+    #if training_args.do_eval:
+    if "validation" not in tokenized_datasets:
+        raise ValueError("--do_eval requires a validation dataset")
+    eval_dataset = tokenized_datasets["validation"]
+    if max_eval_samples is not None:
+        max_eval_samples = min(len(eval_dataset), max_eval_samples)
+        eval_dataset = eval_dataset.select(range(max_eval_samples))
 
         def preprocess_logits_for_metrics(logits, labels):
             if isinstance(logits, tuple):
@@ -917,10 +903,10 @@ def main():
 
     # Data collator
     # This one will take care of randomly masking the tokens.
-    pad_to_multiple_of_8 = data_args.line_by_line and training_args.fp16 and not data_args.pad_to_max_length
+    pad_to_multiple_of_8 = line_by_line and not pad_to_max_length
     data_collator = StatisticalDataCollatorForLanguageModeling(
         tokenizer=tokenizer,
-        mlm_probability=data_args.mlm_probability,
+        mlm_probability=0.15,
         pad_to_multiple_of=8 if pad_to_multiple_of_8 else None,
     )
 
@@ -1015,8 +1001,6 @@ def main():
 
     trainer.training_step = types.MethodType(custom_training_step, trainer)
 
-
-
     # Training
     if training_args.do_train:
         checkpoint = None
@@ -1028,9 +1012,7 @@ def main():
         trainer.save_model()  # Saves the tokenizer too for easy upload
         metrics = train_result.metrics
 
-        max_train_samples = (
-            data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
-        )
+        max_train_samples = len(train_dataset)
         metrics["train_samples"] = min(max_train_samples, len(train_dataset))
 
         trainer.log_metrics("train", metrics)
@@ -1043,7 +1025,7 @@ def main():
 
         # metrics = trainer.evaluate()
 
-        max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(eval_dataset)
+        max_eval_samples = len(eval_dataset)
         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
         try:
             perplexity = math.exp(metrics["eval_loss"])

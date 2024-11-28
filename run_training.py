@@ -24,13 +24,10 @@ import gzip
 
 import math, sys
 import types
-from logging.handlers import QueueHandler
-from multiprocessing import Queue
-
 from datasets.utils import logging as dataset_logging
 from datasets import load_from_disk
-import torch.multiprocessing as mp
-from dataclasses import field
+
+import evaluate
 
 
 # import evaluate
@@ -38,10 +35,11 @@ import transformers
 from transformers import (
     MODEL_FOR_MASKED_LM_MAPPING,
     AutoModelForMaskedLM,
-    HfArgumentParser,
     Trainer,
-    is_torch_tpu_available,
-    set_seed, BertTokenizerFast, BertConfig, is_torch_xla_available
+    set_seed,
+    BertTokenizerFast,
+    BertConfig,
+    is_torch_xla_available
 )
 
 from transformers.trainer_utils import get_last_checkpoint
@@ -61,7 +59,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Any, Tuple, List, Union, Dict, Mapping
 
-from transformers import TrainerCallback, TrainingArguments, TrainerState, TrainerControl, PreTrainedTokenizerBase
+from transformers import TrainerCallback, TrainingArguments, PreTrainedTokenizerBase
 from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, _torch_collate_batch, _numpy_collate_batch
 
 # def create_folder_if_not_exists(folder_path: str):
@@ -121,9 +119,6 @@ INCREMENT = 1
 MODULUS = 2**64
 
 
-
-
-
 def _histo_to_list(histo) -> list:
     return [_h.tolist() for _h in histo]
 
@@ -132,6 +127,26 @@ def hash_tensor(x: Tensor) -> Tensor:
     while x.ndim > 0:
         x = _reduce_last_axis(x)
     return x
+
+
+# Charger la métrique F1
+metric1 = evaluate.load("precision")
+metric2 = evaluate.load("recall")
+metric3 = evaluate.load("f1")
+metric4 = evaluate.load("accuracy")
+
+def custom_metrics(eval_pred):
+    global metric1, metric2, metric3, metric4
+
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+
+    precision = metric1.compute(predictions=predictions, references=labels, average="micro")["precision"]
+    recall = metric2.compute(predictions=predictions, references=labels, average="micro")["recall"]
+    f1 = metric3.compute(predictions=predictions, references=labels, average="micro")["f1"]
+    accuracy = metric4.compute(predictions=predictions, references=labels)["accuracy"]
+
+    return {"precision": precision, "recall": recall, "f1": f1, "accuracy": accuracy}
 
 
 @torch.no_grad()
@@ -199,7 +214,8 @@ class LoggingCallback(TrainerCallback):
         # print(f'kwargs : {kwargs}')
         # print(f'callback : {loss}')
         if state.log_history:
-            self.training_losses.append(state.log_history[-2]['loss'])
+            print(f'log history: {state.log_history}')
+            self.training_losses.append(state.log_history[-2]['loss'] if len(state.log_history) > 1 else np.inf)
             self.evaluation_losses.append(state.log_history[-1]['eval_loss'])
             current_step = state.log_history[-1]['step']
             self.steps.append(current_step)
@@ -215,7 +231,7 @@ class EarlyStoppingCallback(TrainerCallback):
 
     def on_step_end(self, args, state, control, **kwargs):
         if state.log_history:
-            training_loss = state.log_history[-2]['loss']
+            training_loss = state.log_history[-2]['loss'] if len(state.log_history) > 1 else np.inf
             eval_loss = state.log_history[-1]['eval_loss']
             if eval_loss < training_loss:
                 self.early_stopping_counter = 0
@@ -743,15 +759,73 @@ def main():#rank= None, size = None, queue=None):
     # else:
     #     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    max_train_samples = None
-    max_eval_samples = None
+    # TODO : trouver automatiquement `device_batch_size` et `gradient_accumulation_steps` en fonction de `gradient_batch_size` et de la machine courrante.
+
+    device_batch_size, gradient_accumulation_steps = 20, 1
+
+    max_train_samples = device_batch_size*3
+    max_eval_samples = device_batch_size*3
+
     line_by_line = False
     pad_to_max_length = False
     gradient_batch_size = 40
 
-    # TODO : trouver automatiquement `device_batch_size` et `gradient_accumulation_steps` en fonction de `gradient_batch_size` et de la machine courrante.
+    number_of_steps_after_early_stopping = 8
 
-    device_batch_size, gradient_accumulation_steps = 40, 1
+    # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
+    # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
+    # (the dataset will be downloaded automatically from the datasets Hub
+    #
+    # For CSV/JSON files, this script will use the column called 'text' or the first column. You can easily tweak this
+    # behavior (see below)
+    #
+    # In distributed training, the load_dataset function guarantee that only one local process can concurrently
+    # download the dataset.
+
+    # TODO : clean this
+    try:
+        tokenized_datasets = load_from_disk(DATASET_FILE_PATH)
+        logging.info(f'Dataset successfully loaded.')
+    except Exception as e:
+        raise Exception(f'The dataset was not found : {e}.')
+
+    #if training_args.do_train:
+    if "train" not in tokenized_datasets:
+        raise ValueError("--do_train requires a train dataset")
+    train_dataset = tokenized_datasets["train"]
+    if max_train_samples is not None:
+        max_train_samples = min(len(train_dataset), max_train_samples)
+        train_dataset = train_dataset.select(range(max_train_samples))
+    else:
+        max_train_samples = len(train_dataset)
+
+    #if training_args.do_eval:
+    if "validation" not in tokenized_datasets:
+        raise ValueError("--do_eval requires a validation dataset")
+    eval_dataset = tokenized_datasets["validation"]
+    if max_eval_samples is not None:
+        max_eval_samples = min(len(eval_dataset), max_eval_samples)
+        eval_dataset = eval_dataset.select(range(max_eval_samples))
+
+        def preprocess_logits_for_metrics(logits, labels):
+            if isinstance(logits, tuple):
+                # Depending on the model and config, logits may contain extra tensors,
+                # like past_key_values, but logits always come first
+                logits = logits[0]
+            return logits.argmax(dim=-1)
+
+        # metric = evaluate.load("./accuracy.py")
+        compute_metrics = None
+        # def compute_metrics(eval_preds):
+        #     preds, labels = eval_preds
+        #     # preds have the same shape as the labels, after the argmax(-1) has been calculated
+        #     # by preprocess_logits_for_metrics
+        #     labels = labels.reshape(-1)
+        #     preds = preds.reshape(-1)
+        #     mask = labels != -100
+        #     labels = labels[mask]
+        #     preds = preds[mask]
+        #     return metric.compute(predictions=preds, references=labels)
 
     training_args = TrainingArguments(
         output_dir='model_output/',  # directory to save and repository id
@@ -766,7 +840,8 @@ def main():#rank= None, size = None, queue=None):
         report_to="none",
 
         #num_train_epochs=100,  # number of training epochs
-        max_steps=2,  # 300 on a de bon résultats 8.09 , 400 est mieux, 800 = 8.58, 900 = 8.2
+        #max_steps=2,  # 300 on a de bon résultats 8.09 , 400 est mieux, 800 = 8.58, 900 = 8.2
+        num_train_epochs=1.0/(max_train_samples+1),
 
         per_device_train_batch_size=device_batch_size,  # batch size per device during training (c'etait 4)
         per_device_eval_batch_size=device_batch_size,
@@ -824,7 +899,7 @@ def main():#rank= None, size = None, queue=None):
 
         save_strategy="steps",  # save checkpoint every epoch
         save_steps=30,  # 30 à 60 steps
-        save_total_limit=1,
+        save_total_limit=number_of_steps_after_early_stopping+1,
 
         push_to_hub=False,                       # push model to hub
         ddp_timeout=600,
@@ -880,22 +955,7 @@ def main():#rank= None, size = None, queue=None):
     # Set seed before initializing model.
     set_seed(training_args.seed)
 
-    # Get the datasets: you can either provide your own CSV/JSON/TXT training and evaluation files (see below)
-    # or just provide the name of one of the public datasets available on the hub at https://huggingface.co/datasets/
-    # (the dataset will be downloaded automatically from the datasets Hub
-    #
-    # For CSV/JSON files, this script will use the column called 'text' or the first column. You can easily tweak this
-    # behavior (see below)
-    #
-    # In distributed training, the load_dataset function guarantee that only one local process can concurrently
-    # download the dataset.
 
-    # TODO : clean this
-    try:
-        tokenized_datasets = load_from_disk(DATASET_FILE_PATH)
-        logging.info(f'Dataset successfully loaded.')
-    except Exception as e:
-        raise Exception(f'The dataset was not found : {e}.')
 
     # tokenized_datasets = concatenate_datasets(
     #     [
@@ -944,42 +1004,6 @@ def main():#rank= None, size = None, queue=None):
 
     model.resize_token_embeddings(len(tokenizer))
 
-    #if training_args.do_train:
-    if "train" not in tokenized_datasets:
-        raise ValueError("--do_train requires a train dataset")
-    train_dataset = tokenized_datasets["train"]
-    if max_train_samples is not None:
-        max_train_samples = min(len(train_dataset), max_train_samples)
-        train_dataset = train_dataset.select(range(max_train_samples))
-
-    #if training_args.do_eval:
-    if "validation" not in tokenized_datasets:
-        raise ValueError("--do_eval requires a validation dataset")
-    eval_dataset = tokenized_datasets["validation"]
-    if max_eval_samples is not None:
-        max_eval_samples = min(len(eval_dataset), max_eval_samples)
-        eval_dataset = eval_dataset.select(range(max_eval_samples))
-
-        def preprocess_logits_for_metrics(logits, labels):
-            if isinstance(logits, tuple):
-                # Depending on the model and config, logits may contain extra tensors,
-                # like past_key_values, but logits always come first
-                logits = logits[0]
-            return logits.argmax(dim=-1)
-
-        # metric = evaluate.load("./accuracy.py")
-        compute_metrics = None
-        # def compute_metrics(eval_preds):
-        #     preds, labels = eval_preds
-        #     # preds have the same shape as the labels, after the argmax(-1) has been calculated
-        #     # by preprocess_logits_for_metrics
-        #     labels = labels.reshape(-1)
-        #     preds = preds.reshape(-1)
-        #     mask = labels != -100
-        #     labels = labels[mask]
-        #     preds = preds[mask]
-        #     return metric.compute(predictions=preds, references=labels)
-
     # Data collator
     # This one will take care of randomly masking the tokens.
     pad_to_multiple_of_8 = line_by_line and not pad_to_max_length
@@ -990,7 +1014,7 @@ def main():#rank= None, size = None, queue=None):
     )
 
     logging_callback = LoggingCallback()
-    earlystopping_callback = EarlyStoppingCallback(10)
+    earlystopping_callback = EarlyStoppingCallback(number_of_steps_after_early_stopping)
 
     do_compute_metrics = training_args.do_eval and not is_torch_xla_available()
 
@@ -1101,7 +1125,6 @@ def main():#rank= None, size = None, queue=None):
         trainer.save_model()  # Saves the tokenizer too for easy upload
         metrics = train_result.metrics
 
-        max_train_samples = len(train_dataset)
         metrics["train_samples"] = min(max_train_samples, len(train_dataset))
 
         trainer.log_metrics("train", metrics)
@@ -1112,7 +1135,7 @@ def main():#rank= None, size = None, queue=None):
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
 
-        # metrics = trainer.evaluate()
+        metrics = trainer.evaluate()
 
         max_eval_samples = len(eval_dataset)
         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))

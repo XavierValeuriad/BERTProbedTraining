@@ -127,7 +127,7 @@ def _reduce_last_axis(x: Tensor) -> Tensor:
 
 _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 _STATISTICS_DIRECTORY_PATH = 'statistics'
-# create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
+# create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
 
 
 def _save_json(subpath: str, statistics: dict) -> None:

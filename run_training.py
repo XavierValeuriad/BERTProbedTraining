@@ -24,9 +24,12 @@ import gzip
 
 import math, sys
 import types
+from logging.handlers import QueueHandler
+from multiprocessing import Queue
 
 from datasets.utils import logging as dataset_logging
 from datasets import load_from_disk
+import torch.multiprocessing as mp
 from dataclasses import field
 
 
@@ -38,7 +41,7 @@ from transformers import (
     HfArgumentParser,
     Trainer,
     is_torch_tpu_available,
-    set_seed, BertTokenizerFast, BertConfig
+    set_seed, BertTokenizerFast, BertConfig, is_torch_xla_available
 )
 
 from transformers.trainer_utils import get_last_checkpoint
@@ -59,8 +62,7 @@ from datetime import datetime
 from typing import Optional, Any, Tuple, List, Union, Dict, Mapping
 
 from transformers import TrainerCallback, TrainingArguments, TrainerState, TrainerControl, PreTrainedTokenizerBase
-from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, \
-    _torch_collate_batch, _numpy_collate_batch
+from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_tokenizer_warning, _tf_collate_batch, _torch_collate_batch, _numpy_collate_batch
 
 # def create_folder_if_not_exists(folder_path: str):
 #     if not os.path.exists(folder_path):
@@ -92,9 +94,35 @@ from transformers.data.data_collator import DataCollatorMixin, pad_without_fast_
 import torch
 from torch import Tensor, amp, nn
 
+NUMBER_OF_GPUS = 8
+ON_JEAN_ZAY = False
+
+if ON_JEAN_ZAY:
+    STATISTICS_DIRECTORY_PATH = os.path.join(
+        '/gpfsstore/rech/mwd/ulm84ox',
+        'statistics'
+    )
+    DATASET_FILE_PATH = os.path.join(
+        'data/tokenized_train_bert_complete_24'
+    )
+else:
+    DATASET_FILE_PATH = os.path.join(
+        '/home/e187113j/lm/data/encoder',
+        'tokenized_dataset_for_bert_mlm'
+    )
+    STATISTICS_DIRECTORY_PATH = os.path.join(
+        'statistics'
+    )
+
+
+
 MULTIPLIER = 6364136223846793005
 INCREMENT = 1
 MODULUS = 2**64
+
+
+
+
 
 def _histo_to_list(histo) -> list:
     return [_h.tolist() for _h in histo]
@@ -119,16 +147,13 @@ def _reduce_last_axis(x: Tensor) -> Tensor:
 
 
 _SAVING_THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
-_STATISTICS_DIRECTORY_PATH = os.path.join(
-    '/gpfsstore/rech/mwd/ulm84ox',
-    'statistics'
-)
-# create_folder_if_not_exists(_STATISTICS_DIRECTORY_PATH)
+
+# create_folder_if_not_exists(STATISTICS_DIRECTORY_PATH)
 
 
-def _save_json(subpath: str, statistics: dict) -> None:
+def _save_json(subpath: str, statistics: list) -> None:
     try:
-        with gzip.open(os.path.join(_STATISTICS_DIRECTORY_PATH, subpath+'.zip'), "wb") as file:
+        with gzip.open(os.path.join(STATISTICS_DIRECTORY_PATH, subpath + '.zip'), "wb") as file:
             file.write(
                 json.dumps(statistics, indent=4).encode('utf-8')
             )
@@ -158,7 +183,7 @@ class CallbackForGradientStatistics(TrainerCallback):
 from transformers import TrainerCallback
 
 
-# Define custom to log both traning and evaluation loss as we
+# Define custom to log both training and evaluation loss as we
 class LoggingCallback(TrainerCallback):
 
     def __init__(self):
@@ -167,6 +192,7 @@ class LoggingCallback(TrainerCallback):
         self.steps = []
 
     def on_step_end(self, args, state, control, **kwargs):
+
         # print(f'args : {args}')
         # print(f'state : {state}')
         # print(f'control : {control}')
@@ -175,10 +201,11 @@ class LoggingCallback(TrainerCallback):
         if state.log_history:
             self.training_losses.append(state.log_history[-2]['loss'])
             self.evaluation_losses.append(state.log_history[-1]['eval_loss'])
-            self.steps.append(state.log_history[-1]['step'])
+            current_step = state.log_history[-1]['step']
+            self.steps.append(current_step)
+            logging.info(f'Step {current_step} successfully completed.')
 
 
-# -------------------------------------------------------------------------------- NOTEBOOK-CELL: CODE
 # Define custom callback to implement early stopping
 class EarlyStoppingCallback(TrainerCallback):
 
@@ -398,18 +425,20 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
         random_token_ids = random_words
 
         if does_make_stats:
-            _masking_data = {
-                'input_hash': hash_tensor(inputs).item(),
-                'replaced_token_ids_size': list(replaced_token_ids.size()),
-                'replaced_token_ids': replaced_token_ids.tolist(),
-                'replaced_token_locations': replaced_token_locations.tolist(),
-                'randomized_token_ids_size': list(randomized_token_ids.size()),
-                'randomized_token_ids': randomized_token_ids.tolist(),
-                'randomized_token_locations_size': list(randomized_token_locations.size()),
-                'randomized_token_locations': randomized_token_locations.tolist(),
-                'random_token_ids_size': list(random_token_ids.size()),
-                'random_token_ids': random_token_ids.tolist()
-            }
+            masking_data = [
+                {
+                    'input_hash': hash_tensor(inputs).item(),
+                    'replaced_token_ids_size': list(replaced_token_ids.size()),
+                    'replaced_token_ids': replaced_token_ids.tolist(),
+                    'replaced_token_locations': replaced_token_locations.tolist(),
+                    'randomized_token_ids_size': list(randomized_token_ids.size()),
+                    'randomized_token_ids': randomized_token_ids.tolist(),
+                    'randomized_token_locations_size': list(randomized_token_locations.size()),
+                    'randomized_token_locations': randomized_token_locations.tolist(),
+                    'random_token_ids_size': list(random_token_ids.size()),
+                    'random_token_ids': random_token_ids.tolist()
+                }
+            ]
 
             _SAVING_THREAD_POOL.submit(
                 _save_json,
@@ -417,7 +446,7 @@ class StatisticalDataCollatorForLanguageModeling(DataCollatorMixin):
                     StatisticalDataCollatorForLanguageModeling.MASKING_STATISTICS_DIRECTORY_NAME,
                     f'counter_{next(StatisticalDataCollatorForLanguageModeling._ATOMIC_COUNTER)}#callbackcounter_{CallbackForGradientStatistics._ATOMIC_COUNTER}#epoch_{CallbackForGradientStatistics._CURRENT_EPOCH}#device_{torch.cuda.current_device()}#time_{datetime.now().strftime("%I:%M%p on %B %d, %Y")}.json'.replace(' ', '_').replace(',', '_')
                 ),
-                _masking_data
+                masking_data
             )
             CallbackForGradientStatistics._DOES_MAKE_STATS = False
 
@@ -640,23 +669,71 @@ MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 #         #         "--config_overrides can't be used in combination with --config_name or --model_name_or_path"
 #         #     )
 
-NUMBER_OF_GPUS = 8
-@record
-def main():
+# def worker_configurer(queue, rank):
+#     h = QueueHandler(queue)
+#     root = logging.getLogger(f"Worker-{rank}")
+#     root.addHandler(h)
+#     root.setLevel(logging.DEBUG)
+#
+# def listener_configurer():
+#     root = logging.getLogger()
+#     h = logging.StreamHandler()
+#     f = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
+#     h.setFormatter(f)
+#     root.addHandler(h)
+#     root.setLevel(logging.DEBUG)
+#
+# def listener(queue):
+#     listener_configurer()
+#     while True:
+#         try:
+#             record = queue.get()
+#             if record is None:
+#                 break
+#             logger = logging.getLogger(record.name)
+#             logger.handle(record)
+#         except Exception:
+#             import sys, traceback
+#             logging.error('Whoops! Problem:', file=sys.stderr)
+#             traceback.print_exc(file=sys.stderr)
 
-    global NUMBER_OF_GPUS
+@record
+def main():#rank= None, size = None, queue=None):
+
+    global NUMBER_OF_GPUS, ON_JEAN_ZAY
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    os.environ['LOCAL_RANK'] = os.environ['SLURM_LOCALID']
+    # local_rank = idr_torch.local_rank if ON_JEAN_ZAY else rank
+    # if not ON_JEAN_ZAY:
+    #     worker_configurer(queue, rank)
+    #     os.environ['MASTER_ADDR'] = 'localhost'
+    #     os.environ['MASTER_PORT'] = '12355'
+    #     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+    #     logging.info("CUDA available:", torch.cuda.is_available())
+    #     logging.info("CUDA device count:", torch.cuda.device_count())
+    #     for i in range(torch.cuda.device_count()):
+    #         logging.info(f"CUDA Device {i}: {torch.cuda.get_device_name(i)}")
+    #     device_id = 0  # Remplacez par l'identifiant correct de votre périphérique
+    #     torch.cuda.set_device(device_id)
+    if ON_JEAN_ZAY:
+        os.environ['LOCAL_RANK'] = os.environ['SLURM_LOCALID']
+        dist.init_process_group(
+            backend='nccl',
+            init_method='env://',
+            world_size=idr_torch.size,
+            rank=idr_torch.local_rank
+        )
 
-    dist.init_process_group(
-        backend='nccl',
-        init_method='env://',
-        world_size=idr_torch.size,
-        rank=idr_torch.rank
-    )
+    logger = logging.getLogger(__name__)
+
+    # Définir l'identifiant de périphérique CUDA
+    # device_id = rank % torch.cuda.device_count()
+    # torch.cuda.set_device(device_id)
+    #
+    # logger.info(f"Worker {rank} of {size} initialized on device {device_id}")
+
 
     # parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     # if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
@@ -672,21 +749,27 @@ def main():
     pad_to_max_length = False
     gradient_batch_size = 40
 
+    # TODO : trouver automatiquement `device_batch_size` et `gradient_accumulation_steps` en fonction de `gradient_batch_size` et de la machine courrante.
+
+    device_batch_size, gradient_accumulation_steps = 40, 1
+
     training_args = TrainingArguments(
         output_dir='model_output/',  # directory to save and repository id
         overwrite_output_dir=True,
 
-        log_level="info",
-        logging_steps=300,  # log every n steps
+        logging_strategy="steps",
+        log_level="debug",
+        logging_steps=1,  # log every n steps
         logging_dir='model_output/logs/',
         logging_first_step=True,
         logging_nan_inf_filter=True,
+        report_to="none",
 
-        num_train_epochs=100,  # number of training epochs
-        max_steps=100,  # 300 on a de bon résultats 8.09 , 400 est mieux, 800 = 8.58, 900 = 8.2
+        #num_train_epochs=100,  # number of training epochs
+        max_steps=2,  # 300 on a de bon résultats 8.09 , 400 est mieux, 800 = 8.58, 900 = 8.2
 
-        per_device_train_batch_size=BATCH_SIZE,  # batch size per device during training (c'etait 4)
-        per_device_eval_batch_size=BATCH_SIZE,
+        per_device_train_batch_size=device_batch_size,  # batch size per device during training (c'etait 4)
+        per_device_eval_batch_size=device_batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
         auto_find_batch_size=False,
 
@@ -694,7 +777,7 @@ def main():
         gradient_checkpointing=False,  # use gradient checkpointing to save memory
         optim="adamw_torch_fused",  # use fused adamw optimizer
 
-        warmup_steps=None,
+        warmup_steps=0,
 
         do_train=True,
         do_eval=True,
@@ -723,9 +806,9 @@ def main():
         eval_steps=1,
 
         dataloader_drop_last=True,
-        dataloader_num_workers=NUMBER_OF_GPUS * 4,
-        dataloader_persistent_workers=True,
-        dataloader_prefetch_factor=2,
+        dataloader_num_workers=NUMBER_OF_GPUS * 4 if ON_JEAN_ZAY else 0,
+        dataloader_persistent_workers=ON_JEAN_ZAY,
+        dataloader_prefetch_factor=2 if ON_JEAN_ZAY else None,
 
         metric_for_best_model="eval_loss",
         load_best_model_at_end=True,
@@ -745,15 +828,15 @@ def main():
 
         push_to_hub=False,                       # push model to hub
         ddp_timeout=600,
-        ddp_find_unused_parameters=False
+        ddp_find_unused_parameters=False,
+
+        local_rank=idr_torch.local_rank if ON_JEAN_ZAY else 0,
         # report_to="tensorboard",                # report metrics to tensorboard
     )
 
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
     # send_example_telemetry("run_mlm", model_args, data_args)
-
-    training_args.local_rank = idr_torch.local_rank
 
     # Setup logging
     logging.basicConfig(
@@ -777,7 +860,7 @@ def main():
         + f" distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
     # Set the verbosity to info of the Transformers logger (on main process only):
-    logger.info(f"Training/evaluation parameters {training_args}")
+    logger.info(f"Training/evaluation parameters: {training_args}")
 
     # Detecting last checkpoint.
     last_checkpoint = None
@@ -806,18 +889,13 @@ def main():
     #
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    tokenized_datasets = None
-    i = 24
-    while tokenized_datasets is None and i > 0:
-        try:
-            dataset_name = f'data/tokenized_train_bert_complete_{i}'
-            tokenized_datasets = load_from_disk(dataset_name)
-            print(f'dataset successfully loaded: {dataset_name}.')
-        except:
-            i -= 1
 
-    if tokenized_datasets is None:
-        raise Exception('Datafile not found.')
+    # TODO : clean this
+    try:
+        tokenized_datasets = load_from_disk(DATASET_FILE_PATH)
+        logging.info(f'Dataset successfully loaded.')
+    except Exception as e:
+        raise Exception(f'The dataset was not found : {e}.')
 
     # tokenized_datasets = concatenate_datasets(
     #     [
@@ -825,12 +903,13 @@ def main():
     #     ]
     # )
 
+    model_name = "bert-base-uncased"
 
-    tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast.hf')
+    tokenizer = BertTokenizerFast.from_pretrained('bert_tokenizer_fast.hf' if ON_JEAN_ZAY else model_name)
 
     config = BertConfig.from_dict(
         {
-            "_name_or_path": "bert-base-uncased",
+            "_name_or_path": model_name,
             "architectures": [
                 "BertForMaskedLM"
             ],
@@ -913,6 +992,12 @@ def main():
     logging_callback = LoggingCallback()
     earlystopping_callback = EarlyStoppingCallback(10)
 
+    do_compute_metrics = training_args.do_eval and not is_torch_xla_available()
+
+    # TODO : add compute metrics with F1 score
+    compute_metrics = None
+    preprocess_logits_for_metrics = None
+
     # Initialize our Trainer
     trainer = Trainer(
         model=model,
@@ -922,10 +1007,8 @@ def main():
         tokenizer=tokenizer,
         data_collator=data_collator,
         callbacks=[logging_callback, earlystopping_callback],
-        compute_metrics=compute_metrics if training_args.do_eval and not is_torch_tpu_available() else None,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics
-        if training_args.do_eval and not is_torch_tpu_available()
-        else None,
+        compute_metrics=compute_metrics if do_compute_metrics else None,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics if do_compute_metrics else None,
     )
 
     def custom_training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
@@ -966,15 +1049,19 @@ def main():
             self.accelerator.backward(loss, **kwargs)
 
         # print(f'_custom_zero_grad : calling.')
-        if 1.0 >= trainer.state.epoch or trainer.state.global_step % training_args.save_steps == 0:
+        do_compute_gradient_statistics = True
+        #do_compute_gradient_statistics = 1.0 >= trainer.state.epoch or trainer.state.global_step % training_args.save_steps == 0
+        if do_compute_gradient_statistics:
             try:
                 CallbackForGradientStatistics._DOES_MAKE_STATS = True
                 CallbackForGradientStatistics._CURRENT_EPOCH = trainer.state.epoch
 
                 # Computing gradient statistics (per layer)
                 _index = 0
-                gradient_statistics = {
-                    f'{parameter_name}#{++_index}': {
+                gradient_statistics = [
+                    {
+                        'name': parameter_name,
+                        'index': ++_index,
                         'norm': parameters.grad.data.norm(2).item(),
                         'argmax': parameters.grad.data.argmax().item(),
                         'max': parameters.grad.data.max().item(),
@@ -983,7 +1070,7 @@ def main():
                         'histograms': _histo_to_list(torch.histogram(parameters.grad.data.clone().cpu().detach(), bins=24))
                     }
                     for parameter_name, parameters in model.named_parameters() if parameters.grad is not None
-                }
+                ]
 
                 _SAVING_THREAD_POOL.submit(
                     _save_json,
@@ -1008,7 +1095,9 @@ def main():
             checkpoint = training_args.resume_from_checkpoint
         elif last_checkpoint is not None:
             checkpoint = last_checkpoint
+        logging.info(f'Start training from checkpoint `{checkpoint}`.')
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
+        logging.info(f'Training successfully completed !')
         trainer.save_model()  # Saves the tokenizer too for easy upload
         metrics = train_result.metrics
 
@@ -1043,3 +1132,22 @@ def _mp_fn(index):
 
 if __name__ == "__main__":
     main()
+    # if ON_JEAN_ZAY:
+    #     main()
+    # else:
+    #     mp.set_start_method('spawn', force=True)
+    #     size = 1  # Nombre de processus
+    #     queue = Queue()
+    #     listener_process = mp.Process(target=listener, args=(queue,))
+    #     listener_process.start()
+    #     processes = []
+    #     for rank in range(size):
+    #         p = mp.Process(target=main, args=(rank, size, queue))
+    #         p.start()
+    #         processes.append(p)
+    #
+    #     for p in processes:
+    #         p.join()
+    #
+    #     queue.put_nowait(None)
+    #     listener_process.join()
